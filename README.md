@@ -19,7 +19,7 @@
 > This is an independent derivative of the MIT-licensed AstraQuant project. It is not endorsed by OKX, does not guarantee profitability, and is not financial advice. Leveraged derivatives can lose the full allocated margin.
 
 > [!TIP]
-> **New to OKX Europe? [Create an account through the Quant Agent EU referral link](https://my.okx.com/nl/join/4QJU7QRA) to participate in the currently displayed welcome offer, which may advertise rewards worth up to US$400.** =
+> **New to OKX Europe? [Create an account through the Quant Agent EU referral link](https://my.okx.com/nl/join/4QJU7QRA) to check the currently available welcome offer, which may advertise rewards worth up to US$400.** Eligibility, required tasks, deadlines, reward type, and value are determined by OKX and may vary by country or campaign. The project operator may receive referral compensation. Using the link is optional and does not affect the software.
 
 ## EEA X-Perp support
 
