@@ -63,7 +63,7 @@ chmod +x start.sh deploy/install.sh
 如果新电脑可以直接访问 GitHub：
 ```bash
 # 1. 克隆完整仓库
-git clone YOUR_REPOSITORY_URL quant-agent-eu
+git clone https://github.com/TheMMMdev/okx-europe-xperp-ai-trading-agent.git quant-agent-eu
 cd quant-agent-eu
 chmod +x start.sh deploy/install.sh
 

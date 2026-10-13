@@ -35,7 +35,7 @@ APP_VERSION = f"v{__version__}"
 APP_NAME = "Quant Agent EU"
 APP_NAME_EN = "Quant Agent EU"
 APP_SITE = ""
-APP_REPO = ""
+APP_REPO = "https://github.com/TheMMMdev/okx-europe-xperp-ai-trading-agent"
 APP_SITE = (_env_value("ASTRA_APP_SITE") or APP_SITE).rstrip("/")
 APP_REPO = _env_value("ASTRA_APP_REPO") or APP_REPO
 

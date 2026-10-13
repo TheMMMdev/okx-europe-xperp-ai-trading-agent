@@ -1,8 +1,8 @@
 <div align="center">
 
-# Quant Agent EU
+# Quant Agent EU — Open-Source OKX Europe X-Perp AI Trading Bot
 
-### Independent OKX Europe X-Perp execution and AI-assisted trading fork
+### Risk-first AI trading agent with deterministic execution controls
 
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB.svg?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
@@ -30,7 +30,7 @@ Eligibility remains controlled by OKX and can require KYC, an appropriateness as
 ## Quick start
 
 ```bash
-git clone <YOUR-GITHUB-REPOSITORY-URL>
+git clone https://github.com/TheMMMdev/okx-europe-xperp-ai-trading-agent.git
 cd quant-agent-eu
 cp env.example .env
 # Prefer entering credentials in the encrypted admin interface after first start.
@@ -294,7 +294,7 @@ CI runs backend tests on Python 3.11 and 3.12, frontend checks on Node 22.15, th
 Packages Python 3.11, compiles the Vue 3 bundle, and runs the web app plus the scheduler:
 
 ```bash
-git clone <YOUR-GITHUB-REPOSITORY-URL>
+git clone https://github.com/TheMMMdev/okx-europe-xperp-ai-trading-agent.git
 cd quant-agent-eu
 cp env.example .env && vim .env      # configure LLM + OKX credentials
 ./deploy/docker-start.sh             # == docker compose up -d --build
@@ -308,7 +308,7 @@ docker compose logs -f               # aggregated logs
 ### Option B Bare metal
 
 ```bash
-git clone <YOUR-GITHUB-REPOSITORY-URL>
+git clone https://github.com/TheMMMdev/okx-europe-xperp-ai-trading-agent.git
 cd quant-agent-eu
 sh deploy/install.sh                 # creates .venv and installs dependencies
 vim .env

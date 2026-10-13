@@ -353,8 +353,8 @@ class SiteUrlIsSingleSourceTest(unittest.TestCase):
                              f"{rel} 里还有旧仓库 URL（改名后是 404 链接）")
         self.assertNotIn(UPSTREAM_REPO, _read("frontend/src/config/version.ts"))
         self.assertNotIn(UPSTREAM_REPO, _read("astra_backend/version.py"))
-        self.assertIn('OFFICIAL_REPO = \'\'', _read("frontend/src/config/version.ts"))
-        self.assertIn('APP_REPO = ""', _read("astra_backend/version.py"))
+        self.assertIn('OFFICIAL_REPO = \'https://github.com/TheMMMdev/okx-europe-xperp-ai-trading-agent\'', _read("frontend/src/config/version.ts"))
+        self.assertIn('APP_REPO = "https://github.com/TheMMMdev/okx-europe-xperp-ai-trading-agent"', _read("astra_backend/version.py"))
         self.assertIn("from astra_backend.version import __version__, APP_NAME, APP_REPO, get_version",
                       _read("astra_backend/routers/system.py"))
 
