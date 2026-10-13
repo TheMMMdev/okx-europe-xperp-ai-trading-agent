@@ -69,7 +69,7 @@ def resolve_entry_prices(*, is_long, ai_decision, f, prec, tp_dist, sl_dist):
 
 def build_order_intent(*, is_long, inst_id, actual_sz, ct_val, min_sz, limit_px, ai_lever,
                        max_margin_usdt, margin_usdt, inst_lever_cap, ai_conf,
-                       ai_info):
+                       ai_info, product="swap", exp_time="", lot_sz="1", settlement_currency="USDT"):
     """装配 `submit_protected_limit_order` 的方向参数与 `venue_ctx`。
 
     返回 `(side, pos_side, venue_ctx)`。`size` / `price` / `tp` / `sl` 由调用点直接
@@ -99,7 +99,13 @@ def build_order_intent(*, is_long, inst_id, actual_sz, ct_val, min_sz, limit_px,
         # 场所边界换算「保证金 → 原生数量」所需的合约规格（OKX 直签链用池子口径）。
         "ct_val": ct_val,
         "min_sz": min_sz,
-        "intent_id": (f"{inst_id}:BUY_LONG" if is_long else f"{inst_id}:SELL_SHORT")
+        "intent_id": ((f"{product}:{inst_id}:BUY_LONG" if is_long else f"{product}:{inst_id}:SELL_SHORT")
+                     if str(product).lower() != "swap" else
+                     (f"{inst_id}:BUY_LONG" if is_long else f"{inst_id}:SELL_SHORT"))
                      + f":{int(ai_info.get('timestamp') or time.time())}",
     }
+    if str(product).lower() != "swap":
+        venue_ctx.update({"lot_sz": lot_sz, "product": product,
+                          "exp_time": exp_time,
+                          "settlement_currency": settlement_currency})
     return side, pos_side, venue_ctx

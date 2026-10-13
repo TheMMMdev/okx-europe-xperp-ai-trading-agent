@@ -71,7 +71,7 @@ def public_ledger(all_time: bool = Query(default=False)) -> dict[str, Any]:
     from astra_backend.dashboard_payload.reset_state import read_reset_initial_state
     from scripts.evolution.observability import classify_snapshot_observability, prune_snapshot
 
-    data_dir = ROOT / "data"
+    data_dir = Path(os.getenv("ASTRA_DATA_DIR") or ROOT / "data")
     ledger_file = data_dir / "trading_ledger.json"
 
     reset_time = "1970-01-01 00:00:00"
@@ -290,29 +290,31 @@ def equity_history(days: int = 14) -> dict[str, Any]:
 
 
 @router.get("/robots.txt", include_in_schema=False)
-async def robots_txt():
+async def robots_txt(request: Request):
     f = VUE_DIST / "robots.txt"
     if f.is_file():
         return FileResponse(str(f), media_type="text/plain", headers={"Cache-Control": "public, max-age=86400, s-maxage=604800"})
     pf = ROOT / "frontend" / "public" / "robots.txt"
     if pf.is_file():
         return FileResponse(str(pf), media_type="text/plain", headers={"Cache-Control": "public, max-age=86400, s-maxage=604800"})
+    site = (APP_SITE or str(request.base_url).rstrip("/"))
     return PlainTextResponse(
         "User-agent: *\nAllow: /\nAllow: /docs\nAllow: /images/\n"
         "Disallow: /admin/\nDisallow: /api/\n"
-        f"Sitemap: {APP_SITE}/sitemap.xml\n"
+        f"Sitemap: {site}/sitemap.xml\n"
     )
 
 
 @router.get("/sitemap.xml", include_in_schema=False)
-async def sitemap_xml():
+async def sitemap_xml(request: Request):
     f = VUE_DIST / "sitemap.xml"
     if f.is_file():
         return FileResponse(str(f), media_type="application/xml", headers={"Cache-Control": "public, max-age=86400, s-maxage=604800"})
     pf = ROOT / "frontend" / "public" / "sitemap.xml"
     if pf.is_file():
         return FileResponse(str(pf), media_type="application/xml", headers={"Cache-Control": "public, max-age=86400, s-maxage=604800"})
-    return Response(content=f"""<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>{APP_SITE}/</loc><priority>1.0</priority></url><url><loc>{APP_SITE}/docs</loc><priority>0.8</priority></url></urlset>""", media_type="application/xml")
+    site = (APP_SITE or str(request.base_url).rstrip("/"))
+    return Response(content=f"""<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>{site}/</loc><priority>1.0</priority></url><url><loc>{site}/docs</loc><priority>0.8</priority></url></urlset>""", media_type="application/xml")
 
 
 @router.get("/docs/images/{img_name}", include_in_schema=False)

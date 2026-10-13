@@ -185,18 +185,17 @@ class PromptModuleTests(unittest.TestCase):
         tu = prompts.compile_modules(profile["pipelines"]["trading_user"])
         self.assertGreater(len(ts), 500, "基线 trading_system 为空 —— 又读到了结构-only stub")
         self.assertGreater(len(tu), 500, "基线 trading_user 为空 —— 又读到了结构-only stub")
-        self.assertIn("P0 不可覆盖硬约束", ts)
-        self.assertIn("执行层强制", ts)
-        for shape in ("顺势回踩", "顺势反弹", "假突破", "均值回归"):
-            self.assertIn(shape, ts, f"样板未覆盖「{shape}」⇒ 又变成只认一种招式")
-        self.assertIn("三件套", ts, "每单必须自证：形态命名·触发条件·失效位")
-        self.assertNotIn("长期空仓", ts, "耐心不等于长期空仓")
-        # 旧锚点「允许空仓 / 不是保守」的同一意图（耐心允许 WAIT，但不是永久平坦）
-        self.assertIn("减速不等于反转", ts)
-        self.assertIn("待命状态", ts)
-        self.assertIn("这是纪律，不是保守", ts)
-        self.assertIn("宁缺毋滥", tu)
-        self.assertIn("不允许因怕亏而放掉已达标的机会", tu)
+        self.assertIn("P0 non-overridable constraints", ts)
+        self.assertIn("deterministic execution", ts)
+        for shape in ("Trend-aligned pullback", "Trend-aligned rebound", "false breakout", "Mean reversion"):
+            self.assertIn(shape, ts, f"Shipped strategy is missing setup family: {shape}")
+        self.assertIn("setup family, observable trigger, and structural invalidation level", ts)
+        self.assertNotIn("permanently remain flat", ts)
+        self.assertIn("Deceleration inside a valid 4H trend is not itself a reversal", ts)
+        self.assertIn("Being flat means standing by", ts)
+        self.assertIn("If evidence is missing, return WAIT", ts)
+        self.assertIn("If any hard condition fails", tu)
+        self.assertIn("Approve BUY_LONG or SELL_SHORT only for an eligible setup at a structural level", tu)
 
     def test_trading_decision_contract_cannot_be_replaced_by_editor_summary(self):
         base="【推演与决策任务】:\n必须输出严格 JSON，包含 position_management 与 decisions"

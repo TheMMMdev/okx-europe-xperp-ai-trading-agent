@@ -218,7 +218,7 @@ class PromptLibraryTests(unittest.TestCase):
         # 2. 方案有效且通过全套门禁；名称/正文以 JSON 基线为准
         prof = library.get_profile("allpattern_swing")
         self.assertEqual(prof["id"], "allpattern_swing")
-        self.assertEqual(prof["name"], "全形态波段策略（快节奏·高胜率）")
+        self.assertEqual(prof["name"], "All-pattern swing strategy (fast rhythm, high selectivity)")
         self.assertTrue(any(str(m.get("content") or "").strip()
                             for m in prof["pipelines"]["trading_system"]),
                         "基线 trading_system 管线为空 —— 又读到了结构-only stub")
@@ -231,9 +231,9 @@ class PromptLibraryTests(unittest.TestCase):
 
         # 4. 样板必须给模型留自由度：不得把招式写死成某一种形态
         blob = json.dumps(prof, ensure_ascii=False)
-        for shape in ("顺势回踩", "顺势反弹", "假突破", "均值回归"):
-            self.assertIn(shape, blob, f"样板未覆盖「{shape}」形态 ⇒ 又回到只认一种招式的老路")
-        self.assertIn("失效位", blob, "样板必须要求每单给出失效位")
+        for shape in ("Trend-aligned pullback", "Trend-aligned rebound", "false breakout", "Mean reversion"):
+            self.assertIn(shape, blob, f"Shipped profile is missing setup family: {shape}")
+        self.assertIn("structural invalidation", blob, "Every setup must identify structural invalidation")
 
 
 if __name__ == "__main__":

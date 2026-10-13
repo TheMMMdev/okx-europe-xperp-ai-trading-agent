@@ -107,7 +107,7 @@ def persist_state_and_sync_ledger(*,
     position_span = venue_position_span(okx_count=active_pos_count, okx_long=long_count,
                                         okx_short=short_count,
                                         max_positions=MAX_CONCURRENT_POSITIONS)
-    log_entry = f"[{timestamp_full}] ⚡ AstraQuant v{__version__} 巡检完成 | {position_span} | 动作: {', '.join(executed_actions) if executed_actions else '无开平仓操作'}\n"
+    log_entry = f"[{timestamp_full}] ⚡ Quant Agent EU v{__version__} 巡检完成 | {position_span} | 动作: {', '.join(executed_actions) if executed_actions else '无开平仓操作'}\n"
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(log_entry)
     print(log_entry.strip())

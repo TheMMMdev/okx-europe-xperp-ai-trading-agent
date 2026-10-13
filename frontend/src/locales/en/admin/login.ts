@@ -1,5 +1,5 @@
 export const enAdminLogin = {
-  title: 'AstraQuant Console',
+  title: 'Quant Agent EU Console',
   desc: 'Sign in with administrator credentials',
   username: 'Username',
   password: 'Password',

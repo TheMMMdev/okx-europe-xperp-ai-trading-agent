@@ -127,36 +127,36 @@ router.beforeEach(async (to) => {
 
 /* SEO 标题：中文为主（与后端钉扎测试与 CF 缓存语义一致），后台 noindex */
 const PUBLIC_TITLES: Record<string, string> = {
-  '/': 'AstraQuant | 机构级加密货币波段量化终端 & AI交易主脑',
-  '/trading': '实盘矩阵 | AstraQuant',
-  '/factors': 'AI 推演 · 决策审计 | AstraQuant',
-  '/news': '舆情情报 · 聪明钱 | AstraQuant',
-  '/lab': '自进化 · 认知中枢 | AstraQuant',
-  '/history': '交易台账 · 生命周期 | AstraQuant',
-  '/docs': '官方文档 | AstraQuant',
+  '/': 'Quant Agent EU | 机构级加密货币波段量化终端 & AI交易主脑',
+  '/trading': '实盘矩阵 | Quant Agent EU',
+  '/factors': 'AI 推演 · 决策审计 | Quant Agent EU',
+  '/news': '舆情情报 · 聪明钱 | Quant Agent EU',
+  '/lab': '自进化 · 认知中枢 | Quant Agent EU',
+  '/history': '交易台账 · 生命周期 | Quant Agent EU',
+  '/docs': '官方文档 | Quant Agent EU',
 }
 
 export function updateDocumentTitle(to = router.currentRoute.value) {
   const { t } = useI18n()
-  let title = 'AstraQuant'
+  let title = 'Quant Agent EU'
   let isNoIndex = false
 
   if (to.name === 'not-found') {
     isNoIndex = true
     const notFoundText = t('common.notFound.title') || '页面不存在'
     title = to.path.startsWith('/admin')
-      ? `${notFoundText} · ${t('nav.actions.console')} · AstraQuant`
-      : `${notFoundText} · AstraQuant`
+      ? `${notFoundText} · ${t('nav.actions.console')} · Quant Agent EU`
+      : `${notFoundText} · Quant Agent EU`
   } else if (to.path === '/admin/login' || to.name === 'admin-login') {
     isNoIndex = true
-    title = `${t('admin.login.submit')} · ${t('nav.actions.console')} · AstraQuant`
+    title = `${t('admin.login.submit')} · ${t('nav.actions.console')} · Quant Agent EU`
   } else if (to.path.startsWith('/admin')) {
     isNoIndex = true
     const hit = allAdminItems.find((item) => item.path === to.path || item.key === to.name)
     const pageName = hit ? t(hit.labelKey) : ''
     title = pageName
-      ? `${pageName} · ${t('nav.actions.console')} · AstraQuant`
-      : `${t('nav.actions.console')} · AstraQuant`
+      ? `${pageName} · ${t('nav.actions.console')} · Quant Agent EU`
+      : `${t('nav.actions.console')} · Quant Agent EU`
   } else if (PUBLIC_TITLES[to.path]) {
     title = PUBLIC_TITLES[to.path]
   }

@@ -142,9 +142,12 @@ def reconcile_pending_orders(trackers: Dict[str, Any] = None, now_ms: int = None
         if state not in {"live", "partially_filled"} or not inst_id:
             continue
         pos_side = _order_pos_side(side)
-        tracker_key = f"{inst_id}_{pos_side}"
+        from scripts.xperp import product_for_instrument, state_identity
+        product = product_for_instrument(inst_id)
+        tracker_key = state_identity(product, inst_id, pos_side)
+        legacy_tracker_key = f"{inst_id}_{pos_side}"
         # 1) 持仓追踪器归属：同合约同方向 → 重启后接管保留
-        if tracker_key in (trackers or {}):
+        if tracker_key in (trackers or {}) or legacy_tracker_key in (trackers or {}):
             print(f"[挂单对账] 接管挂单 instId={inst_id} ordId={ord_id} side={side} 原因=追踪器归属")
             kept.add(ord_id)
             continue

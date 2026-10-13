@@ -2,7 +2,7 @@
 export const enLanding = {
   betaBanner: {
     badge: 'PRO',
-    text: 'AstraQuant institutional quantitative system is live · Fully supports local self-hosted deployment.',
+    text: 'Quant Agent EU institutional quantitative system is live · Fully supports local self-hosted deployment.',
   },
   nav: {
     trading: 'Trading Terminal',
@@ -70,7 +70,7 @@ export const enLanding = {
   },
   features: {
     tag: 'WHY ASTRAQUANT',
-    title: 'Why Choose AstraQuant?',
+    title: 'Why Choose Quant Agent EU?',
     subtitle: 'Deeply unifying LLM causal reasoning, high-order calculus momentum, and deterministic risk engineering to deliver positive-expectancy alpha across all market regimes.',
     f1Title: '24/7 AI Automated Trading',
     f1Desc: 'Continuous unattended automated execution from microstructural sensing to order placement; council seats can be toggled on demand.',
@@ -138,6 +138,6 @@ export const enLanding = {
     platformTitle: 'Platform Resources',
     docs: 'Architecture Documentation',
     console: 'Admin Console',
-    securityNote: '© 2026 AstraQuant. All rights reserved. This software is for quantitative research and algorithmic trading assistance.',
+    securityNote: '© 2026 Quant Agent EU. All rights reserved. This software is for quantitative research and algorithmic trading assistance.',
   },
 };

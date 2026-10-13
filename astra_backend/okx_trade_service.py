@@ -16,6 +16,10 @@ _INTENT_LOCK = threading.Lock()
 INTENT_TTL_SECONDS = 90
 
 
+def _inst_type(env: Any) -> str:
+    return str(getattr(getattr(env, "product_profile", None), "inst_type", "SWAP"))
+
+
 def _request(method: str, path: str, params: dict[str, Any] | None = None, env: OKXEnvironment | None = None, timeout: int = 20) -> list[dict[str, Any]]:
     """Compatibility facade; the shared client owns signing and private HTTP."""
     selected = env or current_environment()
@@ -37,8 +41,9 @@ def account_snapshot() -> dict[str, Any]:
     env = current_environment()
     if not env.configured:
         raise OKXNotConfigured(f"OKX {env.mode.upper()} 静态 API Key 未配置，请在后台「账户接入」配置 V5 API Key（系统 NOT READY，禁止交易）")
-    positions = [p for p in _request("GET", "/api/v5/account/positions", {"instType":"SWAP"}, env) if abs(float(p.get("pos",0) or 0))>1e-12]
-    orders = _request("GET", "/api/v5/trade/orders-pending", {"instType":"SWAP"}, env)
+    inst_type = _inst_type(env)
+    positions = [p for p in _request("GET", "/api/v5/account/positions", {"instType":inst_type}, env) if abs(float(p.get("pos",0) or 0))>1e-12]
+    orders = _request("GET", "/api/v5/trade/orders-pending", {"instType":inst_type}, env)
     public_positions=[]
     for position in positions:
         token, confirmation = _create_intent(env, position)
@@ -67,14 +72,15 @@ def fast_close_confirmed(close_token: str, confirmation: str) -> dict[str, Any]:
     intent=_consume_intent(close_token)
     if env.identity!=intent["environment_id"]: raise ValueError("OKX 环境或凭证已变化，请刷新当前持仓")
     if confirmation.strip().upper()!=intent["confirmation"]: raise ValueError(f"确认短语必须精确为：{intent['confirmation']}")
-    target=_position_match(_request("GET","/api/v5/account/positions",{"instType":"SWAP","instId":intent["instId"]},env),intent)
+    inst_type=_inst_type(env)
+    target=_position_match(_request("GET","/api/v5/account/positions",{"instType":inst_type,"instId":intent["instId"]},env),intent)
     if not target: raise ValueError("目标仓位已不存在，请刷新")
     actual=abs(float(target.get("pos",0) or 0)); tolerance=max(1e-12,actual*1e-6)
     if abs(actual-intent["expected_size"])>tolerance: raise ValueError(f"仓位数量已从 {intent['expected_size']} 变化为 {actual}，请刷新")
     target_side=intent["posSide"] if intent["posSide"] in {"long","short"} else ("long" if float(target.get("pos",0) or 0)>0 else "short")
     canceled=[]; cancel_failures=[]
     # Cancel active regular orders
-    for order in _request("GET","/api/v5/trade/orders-pending",{"instType":"SWAP","instId":intent["instId"]},env):
+    for order in _request("GET","/api/v5/trade/orders-pending",{"instType":inst_type,"instId":intent["instId"]},env):
         order_side=str(order.get("posSide") or "net").lower()
         if order_side not in {target_side,"net"}: continue
         order_id=str(order.get("ordId") or "")
@@ -114,7 +120,7 @@ def fast_close_confirmed(close_token: str, confirmation: str) -> dict[str, Any]:
         auto_cxl=True, cl_ord_id=f"astraclose{int(time.time())}", env=env)
     remaining=actual
     for _ in range(10):
-        time.sleep(.7); current=_position_match(_request("GET","/api/v5/account/positions",{"instType":"SWAP","instId":intent["instId"]},env),intent)
+        time.sleep(.7); current=_position_match(_request("GET","/api/v5/account/positions",{"instType":inst_type,"instId":intent["instId"]},env),intent)
         remaining=abs(float(current.get("pos",0) or 0)) if current else 0.0
         if remaining<=tolerance: break
     if remaining>tolerance: raise RuntimeError(f"平仓请求已受理但仓位未确认归零，剩余 {remaining}；请刷新，禁止重复点击")

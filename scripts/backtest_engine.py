@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AstraQuant Multi-Asset Backtesting & Statistical Verification Engine (backtest_engine.py)
+Quant Agent EU Multi-Asset Backtesting & Statistical Verification Engine (backtest_engine.py)
 ------------------------------------------------------------------------------------------
 Features:
 - Multi-Asset Portfolio Backtesting (Simultaneous 6 Instruments)

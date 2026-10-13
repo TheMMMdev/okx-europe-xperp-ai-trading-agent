@@ -679,7 +679,7 @@ def compose_evolution_prompts(closed_trades: List[Dict[str, Any]], existing_memo
 
 {memory_context}
 
-======================= 【AstraQuant 加密量化实盘战绩与历史交易台账】 =======================
+======================= 【Quant Agent EU 加密量化实盘战绩与历史交易台账】 =======================
 【统计汇总】:
 - 总平仓笔数: {total} 笔 (胜 {len(wins)} / 负 {len(losses)} | 胜率: {win_rate}%)
 - 跨交易所分布: {v_summary}
@@ -1039,7 +1039,7 @@ def run_self_evolution(force: bool = False):
     tz_bj = datetime.timezone(datetime.timedelta(hours=8))
     now_bj = datetime.datetime.now(tz_bj)
     timestamp_str = now_bj.strftime("%Y-%m-%d %H:%M:%S")
-    log_msg(f"🧬 启动 AstraQuant AI 大脑自进化认知复盘与实战心法提炼 (v{__version__} Crypto Focus)...")
+    log_msg(f"🧬 启动 Quant Agent EU AI 大脑自进化认知复盘与实战心法提炼 (v{__version__} Crypto Focus)...")
 
     closed_trades = load_closed_trades()
     total_trades = len(closed_trades)

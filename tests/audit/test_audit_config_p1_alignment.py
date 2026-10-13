@@ -370,10 +370,10 @@ class AdminOverrideReachesModelTests(_SandboxBase):
         # ⚠️ 2026-09-30 改钉：原判据 `核心军规` 出自已被删除的代码常量 `_SYSTEM_CORE`。
         # 现在正文只存 `data/prompt_library.json`，故改钉新出厂基线的**分节标题**——
         # 它与 `核心军规` 承担同一职责：证明"布局本身真的生效了"，而不是只剩覆盖层。
-        self.assertIn("快节奏兑现与亏损截断", effective,
-                      "布局本身必须仍然生效（只读 Schema + JSON 正文模块都要在）")
-        self.assertIn("严格 JSON 规范契约与完整输出骨架", effective,
-                      "只读 JSON Schema 必须始终在实发提示词里")
+        self.assertIn("Fast realization and loss containment", effective,
+                      "The editable layout must remain active alongside the read-only schema")
+        self.assertIn("Strict JSON contract and complete output schema", effective,
+                      "The read-only JSON schema must always be present in the effective prompt")
 
     def test_no_override_means_plain_base(self):
         self.override_path.unlink()

@@ -27,6 +27,7 @@ from astra_backend.llm.policy import (
     SUPPORTED_API_FORMATS,
 )
 from astra_backend.llm.providers import _join_api_path
+from astra_backend.version import APP_VERSION
 from astra_backend.llm.transport import (
     _LLMHardError,
     _LLMTransientError,
@@ -116,7 +117,7 @@ def fetch_remote_models(reload_config: Callable[[], Dict[str, Any]], get_active_
     last_err = ""
     saw_auth_error = False
     for ep, hdrs in endpoints:
-        hdrs["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 AstraQuant/8.3"
+        hdrs["User-Agent"] = f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Quant-Agent-EU/{APP_VERSION}"
         req = urllib.request.Request(ep, headers=hdrs)
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:

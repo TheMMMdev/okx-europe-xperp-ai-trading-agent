@@ -29,21 +29,21 @@ export interface ConsensusMode {
 export const CONSENSUS_MODES: ConsensusMode[] = [
   {
     id: 'standard',
-    name: '标准提案模式',
+    name: 'Standard proposal',
     tag: 'Standard',
-    desc: '交易员独立提案 → CIO 汇总终审。效率最高，适合常规行情。',
+    desc: 'Traders submit independently and the CIO performs the final review. Fastest for normal markets.',
   },
   {
     id: 'cross_examination',
-    name: '交叉质询模式',
+    name: 'Cross-examination',
     tag: 'Cross-Exam',
-    desc: '交易员先互评质疑再定稿，CIO 终审。更稳但更慢，适合分歧行情。',
+    desc: 'Traders challenge one another before the CIO review. More cautious but slower for divided markets.',
   },
   {
     id: 'debate',
-    name: '对抗辩论模式',
+    name: 'Adversarial debate',
     tag: 'Debate',
-    desc: '多空双方逐轮辩论，CIO 裁决。最慢，适合极端不确定行情。',
+    desc: 'Long and short cases debate in rounds before the CIO decides. Slowest for highly uncertain markets.',
   },
 ]
 

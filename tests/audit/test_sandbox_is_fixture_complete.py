@@ -32,6 +32,7 @@ r"""隔离沙箱必须**保住读语义** —— 不许把"已配置"悄悄变�
 """
 from __future__ import annotations
 
+import os
 import unittest
 from pathlib import Path
 
@@ -40,6 +41,7 @@ from tests.config_sandbox import SANDBOXED_MODULES, isolate_config
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "data"
+CLEAN_PUBLIC_CHECKOUT = os.getenv("ASTRA_CLEAN_PUBLIC_CHECKOUT") == "1"
 
 #: ── 桶 A：**失败关闭**型 —— 空 = "没配置 / 没持仓 / 没在跑"，是安全的那一侧 ──
 #: 这类**绝不能**继承生产值：继承了就等于让用例依赖你的真实持仓与凭证，
@@ -214,6 +216,12 @@ class EmptiedConfigsMustBeDeclaredTest(unittest.TestCase):
         否则这份清单会慢慢变成一份与现实无关的说明文。
         """
         emptied = self._emptied()
+        if CLEAN_PUBLIC_CHECKOUT:
+            self.skipTest("clean public checkout has no local runtime configuration to compare")
+        runtime_files = [p for p in DATA.rglob("*") if p.is_file()
+                         and p.name not in {".gitkeep", "prompt_library.json"}]
+        if not emptied and not runtime_files:
+            self.skipTest("clean public checkout has no local runtime configuration to compare")
         stale = [rel for rel in DELIBERATE_EMPTY
                  if rel not in emptied and rel not in CONDITIONALLY_ABSENT]
         self.assertEqual(stale, [],

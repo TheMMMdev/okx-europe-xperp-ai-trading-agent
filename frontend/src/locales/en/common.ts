@@ -133,8 +133,8 @@ export const enCommon = {
     siteTimeTip: 'Site time: Asia/Shanghai (UTC+8)',
   },
   brand: {
-    name: 'AstraQuant',
-    nameEn: 'AstraQuant',
+    name: 'Quant Agent EU',
+    nameEn: 'Quant Agent EU',
     tagline: 'AI-Driven Perpetual Swing Terminal',
     official: 'Official',
     license: 'MIT License',

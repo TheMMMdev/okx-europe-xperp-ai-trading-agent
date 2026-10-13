@@ -461,11 +461,11 @@ class ProjectReadmeStructureEntryTest(unittest.TestCase):
             ("scripts/README.md", "Runtime scripts & daemons"),
             ("frontend/src/components/admin/README.md", "Frontend components & state"),
         ), r"never contained|non-existent|does not exist"),
-        ("README.zh-CN.md", "代码结构入口", (
-            ("astra_backend/README.md", "后端分层"),
-            ("scripts/README.md", "哪个是入口/守护"),
-            ("frontend/src/components/admin/README.md", "前端组件"),
-        ), r"从未存在|不存在"),
+        ("README.zh-CN.md", "Code structure entry", (
+            ("astra_backend/README.md", "Backend layering"),
+            ("scripts/README.md", "Runtime scripts, daemons"),
+            ("frontend/src/components/admin/README.md", "Frontend components"),
+        ), r"never contained|non-existent|does not exist"),
     )
 
     #: 章节里**有意**提到但不必存在的名字

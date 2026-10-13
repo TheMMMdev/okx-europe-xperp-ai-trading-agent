@@ -12,9 +12,3 @@ Disallow: /admin/
 Disallow: /admin/*
 Disallow: /api/
 Disallow: /api/*
-
-# Host
-Host: https://www.astraquant.tech
-
-# Sitemaps
-Sitemap: https://www.astraquant.tech/sitemap.xml

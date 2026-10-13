@@ -24,12 +24,12 @@ COUNCIL_CONFIG_FILE = DATA_DIR / "council_config.json"
 
 DEFAULT_PLAZA_SETTINGS: Dict[str, Any] = {
     "enabled": False,
-    "nickname": "0xEthan",
+    "nickname": "Anonymous Quant",
     "show_performance": True,
     "show_balance": False,
     "show_model": True,
     "show_strategy_params": True,
-    "plaza_hub_url": "https://hub.astraquant.tech",
+    "plaza_hub_url": "",
     "updated_at": "",
 }
 
@@ -153,7 +153,7 @@ def assemble_plaza_public_profile() -> Dict[str, Any]:
 
     # 1. Node Info
     node_info = {
-        "nickname": settings.get("nickname") or "0xEthan",
+        "nickname": settings.get("nickname") or "Anonymous Quant",
         "system_version": get_version(),
         "is_live": True,
         "environment": "live",
@@ -238,8 +238,8 @@ def assemble_plaza_public_profile() -> Dict[str, Any]:
 
         strategy_block.update({
             "strategy_id": prof_id,
-            "strategy_name": (profile_data or {}).get("name", "AstraQuant 实盘方案"),
-            "description": (profile_data or {}).get("description", "AstraQuant AI 实盘量化策略"),
+            "strategy_name": (profile_data or {}).get("name", "Quant Agent EU 实盘方案"),
+            "description": (profile_data or {}).get("description", "Quant Agent EU AI 实盘量化策略"),
             "risk_settings": risk_settings,
             "prompt_profile": profile_data or {},
         })

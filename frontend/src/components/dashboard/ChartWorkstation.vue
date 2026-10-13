@@ -579,7 +579,7 @@ function initChart() {
   disposeKLineChart(chartContainer.value)
 
   klineChart = initKLineChart(chartContainer.value, {
-    locale: isEn.value ? 'en-US' : 'zh-CN',
+    locale: 'en-US',
     timezone: 'Asia/Shanghai',
     styles: getChartStyles(),
     formatter: {

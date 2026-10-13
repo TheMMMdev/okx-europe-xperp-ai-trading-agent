@@ -8,7 +8,7 @@ from urllib.parse import parse_qs, urlparse
 from typing import Any
 from fastapi import APIRouter, Header, HTTPException, Request
 
-from astra_backend.version import __version__, APP_NAME, get_version
+from astra_backend.version import __version__, APP_NAME, APP_REPO, get_version
 from astra_backend.config import settings, refresh_settings
 from astra_backend.settings_store import update_env
 from astra_backend.account_baseline import load_account_baseline
@@ -29,6 +29,25 @@ from astra_gateway.store import GatewayStore
 from astra_gateway.scheduler import scheduler_snapshot
 
 router = APIRouter(tags=["system"])
+
+
+def _gateway_store_if_present() -> GatewayStore | None:
+    return GatewayStore(GATEWAY_DB_PATH) if GATEWAY_DB_PATH.exists() else None
+
+
+def _empty_gateway_stats() -> dict[str, int]:
+    return {"pending": 0, "processing": 0, "retry": 0, "accepted": 0, "delivered": 0, "dead": 0}
+
+
+def _empty_gateway_health() -> dict[str, int]:
+    return {"critical_total": 0, "critical_unmet": 0, "critical_failed": 0, "critical_unroutable": 0}
+
+
+def _empty_model_stats() -> dict[str, Any]:
+    return {"total_calls": 0, "successful_calls": 0, "avg_duration_ms": 0,
+            "total_tokens": 0, "cached_tokens_total": 0, "cache_hit_calls": 0,
+            "cache_reporting_calls": 0, "cache_hit_rate": None}
+
 
 ADMIN_LOG_SOURCES = {
     "trader": "ai_factor_trader.log",
@@ -90,6 +109,11 @@ def get_admin_configuration() -> dict[str, str]:
     except Exception:
         pass
 
+    try:
+        admin_system = "账号密码 + 服务端会话" if admin_auth.has_users() else "尚未初始化"
+    except Exception:
+        admin_system = "尚未初始化"
+
     return {
         "交易场所与路由": f"{'模拟盘 DEMO' if settings.okx_simulated else '实盘 LIVE'} · 选所模式: {pref_venue.upper()}",
         "OKX 当前环境": "模拟盘 DEMO" if settings.okx_simulated else "实盘 LIVE",
@@ -101,7 +125,7 @@ def get_admin_configuration() -> dict[str, str]:
         "物理拦截管线": "5大物理拦截器 (FAIL-CLOSED)",
         "云端 OCO 覆盖": "100% 交易所云端挂载",
         "初始本金基准": f"{baseline.get('initial_capital', 4061.04):,.2f} USDT",
-        "管理员系统": "账号密码 + 服务端会话" if admin_auth.has_users() else "尚未初始化",
+        "管理员系统": admin_system,
         "通知告警通道": "已配置多通道" if has_notify else "未配置",
         "应急平仓机制": "一次性 Token 复核已就绪" if settings.manual_close_enabled else "已禁用",
     }
@@ -432,11 +456,11 @@ def update_admin_config(payload: AdminConfigUpdate, x_astra_admin_token: str | N
 def admin_agents(x_astra_admin_token: str | None = Header(default=None)) -> dict[str, Any]:
     refresh_settings()
     require_admin_header(x_astra_admin_token)
-    store = GatewayStore(GATEWAY_DB_PATH)
+    store = _gateway_store_if_present()
     return {
-        "agents": agent_statuses(store.job_runs(100)),
-        "model_stats": store.model_stats(),
-        "model_calls": store.model_calls(50),
+        "agents": agent_statuses(store.job_runs(100) if store else []),
+        "model_stats": store.model_stats() if store else _empty_model_stats(),
+        "model_calls": store.model_calls(50) if store else [],
         "prompt_policy": "交易主脑和自进化均由 Python 直接构造并传输提示词；Gateway 只记录无内容遥测。",
         "secret_store": secret_store_status(),
     }
@@ -458,9 +482,21 @@ def admin_about(
     refresh_settings()
     pid = read_pid()
     gw_running = process_running(pid)
-    store = GatewayStore(GATEWAY_DB_PATH)
-    gw_status = {"version": GATEWAY_VERSION, "running": gw_running, "pid": pid or None, "stats": store.stats(), "event_health": store.event_health(), "scheduler": scheduler_snapshot(store)}
+    store = _gateway_store_if_present()
+    gw_status = {
+        "version": GATEWAY_VERSION,
+        "running": gw_running,
+        "pid": pid or None,
+        "stats": store.stats() if store else _empty_gateway_stats(),
+        "event_health": store.event_health() if store else _empty_gateway_health(),
+        "scheduler": scheduler_snapshot(store) if store else {"jobs": [], "recent_runs": []},
+    }
     current_v = get_version()
+    try:
+        repo_meta = {"branch": app_attr("git", git)(["branch", "--show-current"]),
+                     "commit": app_attr("git", git)(["rev-parse", "--short", "HEAD"])}
+    except Exception:
+        repo_meta = {"branch": "", "commit": ""}
     return {
         "product": {"name": APP_NAME, "version": current_v, "control_plane": "ASTRA Gateway Runtime", "gateway_version": GATEWAY_VERSION},
         "runtime": {"python": platform.python_version(), "platform": platform.platform(), "backend_pid": os.getpid(), "gateway": gw_status},
@@ -469,7 +505,7 @@ def admin_about(
             {"name": "Gateway Event Runtime", "version": GATEWAY_VERSION},
             {"name": "SQLite", "version": __import__("sqlite3").sqlite_version},
         ],
-        "repository": {"url": "https://github.com/0xethanq/astra-quant-agent", "branch": app_attr("git", git)(["branch", "--show-current"]), "commit": app_attr("git", git)(["rev-parse", "--short", "HEAD"])},
+        "repository": {"url": APP_REPO, **repo_meta},
         "update": app_attr("update_status", update_status)(),
         # 注册/返佣通道（后台「关于」页渲染成可复制入口）。
         # ⚠️ URL 走 settings（可被 OKX_INVITE_URL 覆盖，便于分发副本替换）。
@@ -557,7 +593,7 @@ def _invite_code(url: str) -> str:
     """从邀请链接里取「给人看的短码」（纯展示用，不是鉴权值）。
 
     优先取查询串里的 `ref`/`code`/`invite`（把码放在 `?ref=` 的形态），
-    否则取路径末段（OKX `/join/48039151`）。
+    否则取路径末段（如 OKX `/join/<invite-code>`）。
     取不到就返回空串 —— 前端据此退化成"只显示整条链接"，不编造。
     """
     parts = urlparse(str(url or "").strip())
@@ -575,29 +611,23 @@ def _invite_code(url: str) -> str:
 
 
 def _channel_payload() -> list[dict[str, Any]]:
-    """三条通道的载荷。
-
-    ⚠️ **刻意不含经纪商 code**（2026-09，仓库所有者拍板）：那个值要跟订单一起发出去，
-    是归属标识，**不该出现在任何用户看得到的界面上** —— 摆出来等于邀请别人照着改。
-    订单带不带 tag 与它显示与否**无关**：`okx_rest._with_broker_tag` 是唯一出口，
-    无条件挂载（不看账户、不看 demo/live）。此前那个"管理员版"接口即因此删除。
-    """
+    """Public referral channels with explicit compensation disclosure state."""
     refresh_settings()
     channels = []
     for key, name, attr in CHANNEL_SPECS:
         url = str(getattr(settings, attr, "") or "").strip()
         channels.append({"key": key, "name": name, "invite_url": url,
-                         "code": _invite_code(url) if url else ""})
+                         "code": _invite_code(url) if url else "",
+                         "referral_compensation_possible": bool(url),
+                         "broker_attribution_enabled": bool(settings.okx_broker_tag)})
     return channels
 
 
 @router.get("/api/v1/referral-channels")
 def referral_channels() -> dict[str, Any]:
-    """公开只读：注册/返佣通道（用户可见；**不需要任何鉴权**）。
-
-    ⚠️ 与 `scripts/okx_rest.py` 的经纪商 tag 是两件事，别混：
-    - **tag** 随每一笔订单发出，负责把成交**归属**到经纪商 —— 这才是返佣的机制，
-      与用户是否走过下列链接**无关**；
-    - 本接口这几条链接是给用户**开户**用的入口（顺带可叠加节点返佣）。
-    """
-    return {"channels": _channel_payload()}
+    """Public registration channels and operator-compensation disclosure."""
+    return {
+        "channels": _channel_payload(),
+        "disclosure": ("The operator may receive referral or broker compensation when a configured "
+                       "channel or authorized broker tag is used. Empty configuration means no attribution."),
+    }

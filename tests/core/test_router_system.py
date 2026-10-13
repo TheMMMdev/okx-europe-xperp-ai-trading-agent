@@ -576,10 +576,14 @@ class AdminOpsRoutesTests(_Base):
         store.job_runs.return_value = [{"id": 1}]
         store.model_stats.return_value = {"x": 1}
         store.model_calls.return_value = [{"id": 2}]
-        self._start(mock.patch.object(A, "GatewayStore", return_value=store))
-        self._start(mock.patch.object(A, "agent_statuses", return_value=["a"]))
-        self._start(mock.patch.object(A, "secret_store_status", return_value={"ok": True}))
-        out = A.admin_agents(x_astra_admin_token="tok")
+        with tempfile.TemporaryDirectory() as tmp:
+            gateway_db = Path(tmp) / "gateway.db"
+            gateway_db.touch()
+            self._start(mock.patch.object(A, "GATEWAY_DB_PATH", gateway_db))
+            self._start(mock.patch.object(A, "GatewayStore", return_value=store))
+            self._start(mock.patch.object(A, "agent_statuses", return_value=["a"]))
+            self._start(mock.patch.object(A, "secret_store_status", return_value={"ok": True}))
+            out = A.admin_agents(x_astra_admin_token="tok")
         self.assertEqual(out["agents"], ["a"])
         self.assertEqual(out["model_stats"], {"x": 1})
         store.job_runs.assert_called_once_with(100)

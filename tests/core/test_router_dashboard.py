@@ -328,32 +328,32 @@ class StaticAssetTests(_Base):
     # ── robots / sitemap ─────────────────────────────────
     def test_robots_prefers_dist_then_public_then_default(self):
         (self.vue / "robots.txt").write_text("from-dist", encoding="utf-8")
-        out = _run(A.robots_txt())
+        out = _run(A.robots_txt(mock.Mock(base_url="http://testserver/")))
         self.assertIsInstance(out, FileResponse)
         self.assertEqual(out.path, str(self.vue / "robots.txt"))
 
         (self.vue / "robots.txt").unlink()
         (self.root / "frontend" / "public" / "robots.txt").write_text("pub", encoding="utf-8")
-        out = _run(A.robots_txt())
+        out = _run(A.robots_txt(mock.Mock(base_url="http://testserver/")))
         self.assertEqual(out.path, str(self.root / "frontend" / "public" / "robots.txt"))
 
         (self.root / "frontend" / "public" / "robots.txt").unlink()
-        out = _run(A.robots_txt())
+        out = _run(A.robots_txt(mock.Mock(base_url="http://testserver/")))
         self.assertIsInstance(out, PlainTextResponse)
         self.assertIn("Disallow: /admin/", out.body.decode())
 
     def test_sitemap_falls_back_to_the_inline_document(self):
-        out = _run(A.sitemap_xml())
+        out = _run(A.sitemap_xml(mock.Mock(base_url="http://testserver/")))
         self.assertIn("urlset", out.body.decode())
 
         (self.vue / "sitemap.xml").write_text("<urlset/>", encoding="utf-8")
-        out = _run(A.sitemap_xml())
+        out = _run(A.sitemap_xml(mock.Mock(base_url="http://testserver/")))
         self.assertIsInstance(out, FileResponse)
 
     def test_sitemap_uses_the_public_folder_before_the_inline_document(self):
         public = self.root / "frontend" / "public" / "sitemap.xml"
         public.write_text("<urlset/>", encoding="utf-8")
-        out = _run(A.sitemap_xml())
+        out = _run(A.sitemap_xml(mock.Mock(base_url="http://testserver/")))
         self.assertIsInstance(out, FileResponse)
         self.assertEqual(out.path, str(public))
 

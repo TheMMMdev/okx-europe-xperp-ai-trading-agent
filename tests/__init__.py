@@ -31,11 +31,18 @@ _TEST_SANDBOX = tempfile.mkdtemp(prefix="astra-tests-")
 # 为什么要用 env 而不是只 patch 常量：`db_manager` 存在**双拼写**两个模块实例
 # （`scripts.db_manager` 与顶层 `db_manager`），只 patch 常量会漏掉另一个
 # —— 本刀实测正是它漏了 2 次生产连接（`ai_factor_trader` 走 `from db_manager import`）。
-os.environ.setdefault("ASTRA_QUANT_DB", os.path.join(_TEST_SANDBOX, "astra_quant.db"))
-os.environ.setdefault("ASTRA_RISK_RESERVATION_DB",
-                      os.path.join(_TEST_SANDBOX, "risk_reservation.db"))
-os.environ.setdefault("ASTRA_ADMIN_DB", os.path.join(_TEST_SANDBOX, "astra_admin.db"))
-os.environ.setdefault("ASTRA_GATEWAY_DB", os.path.join(_TEST_SANDBOX, "astra_gateway.db"))
+def _set_sandbox_env(key: str, value: str) -> None:
+    # `--env-file .env` / copied templates may provide these keys with empty values;
+    # empty must mean unset here, otherwise production data/ paths leak back in.
+    if not os.environ.get(key):
+        os.environ[key] = value
+
+
+_set_sandbox_env("ASTRA_QUANT_DB", os.path.join(_TEST_SANDBOX, "astra_quant.db"))
+_set_sandbox_env("ASTRA_RISK_RESERVATION_DB",
+                 os.path.join(_TEST_SANDBOX, "risk_reservation.db"))
+_set_sandbox_env("ASTRA_ADMIN_DB", os.path.join(_TEST_SANDBOX, "astra_admin.db"))
+_set_sandbox_env("ASTRA_GATEWAY_DB", os.path.join(_TEST_SANDBOX, "astra_gateway.db"))
 
 # 会话级沙箱必须在进程退出时清掉。
 #
@@ -69,7 +76,7 @@ os.environ.setdefault("ASTRA_EVOLUTION_MODEL_COOLDOWN_FILE",
 # 批E(2026-09-13)：仪表盘载荷构建在台账 >60s 未更新时会 spawn 真实台账同步子进程
 # （打三所接口 + 重写 data/trading_ledger.json）。仪表盘相关测试走真实 DATA_DIR，
 # 于是测试会打真网络并改写生产台账——同款隔离：默认禁用该触发点。生产不设此变量。
-os.environ.setdefault("ASTRA_LEDGER_SYNC_DISABLED", "1")
+os.environ["ASTRA_LEDGER_SYNC_DISABLED"] = "1"
 
 import astra_backend.config as _config
 
@@ -621,24 +628,28 @@ if not _ALLOW_REAL_WRITES:
         """
         try:
             import astra_backend.admin_auth as _aa
-            _aa.DB_PATH = Path(os.environ["ASTRA_ADMIN_DB"])
+            _aa.DB_PATH = Path(os.environ.get("ASTRA_ADMIN_DB") or
+                               os.path.join(_DB_SANDBOX, "astra_admin.db"))
         except Exception:
             pass
         try:
             import astra_backend.risk_reservation as _rr
-            _rr.DEFAULT_DB_PATH = os.environ["ASTRA_RISK_RESERVATION_DB"]
+            _rr.DEFAULT_DB_PATH = (os.environ.get("ASTRA_RISK_RESERVATION_DB") or
+                                   os.path.join(_DB_SANDBOX, "risk_reservation.db"))
             _rr.reset_default_manager()
         except Exception:
             pass
         for _name in ("scripts.db_manager", "db_manager"):
             try:
                 _mod = __import__(_name, fromlist=["DB_PATH"])
-                _mod.DB_PATH = os.environ["ASTRA_QUANT_DB"]
+                _mod.DB_PATH = (os.environ.get("ASTRA_QUANT_DB") or
+                                os.path.join(_DB_SANDBOX, "astra_quant.db"))
             except Exception:
                 pass
         try:
             import astra_gateway.publisher as _pub
-            _pub.DB_PATH = Path(os.environ["ASTRA_GATEWAY_DB"])
+            _pub.DB_PATH = Path(os.environ.get("ASTRA_GATEWAY_DB") or
+                                os.path.join(_DB_SANDBOX, "astra_gateway.db"))
         except Exception:
             pass
 

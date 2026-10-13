@@ -51,6 +51,9 @@ git log --oneline --grep="第.*刀" -- frontend/package-lock.json → 0
 `@tailwindcss/vite` `lucide-vue-next` `pinia` `tailwindcss` `vue`
 `vue-router` `klinecharts` `lightweight-charts`
 
+> 2026-10 追加：`scripts.typecheck` 与 `scripts.test`（仅 npm 脚本；
+> `dependencies`/`devDependencies` 零变动，哈希基线随之更新）。
+
 > 本测试只锁"依赖清单不变"，**不锁版本号写法**——
 > 版本号变化同样会翻红（哈希敏感），但那属于依赖变更，本就该人工过目。
 """
@@ -77,7 +80,7 @@ BASELINE: dict[str, str] = {
     "requirements.txt":
         "fcb6c397cdaf2e710aa5c1d303dd5e42a524f81e71f7b8c566e2c37d57e38a7e",
     "frontend/package.json":
-        "a558a88f9e1704e639cfb57fa37d98968b8fed052c9b47c9bfc9a6cd44269eb6",
+        "5de40bba0bffd3ce24d07230a11daf09808d7635dce4840798aa46d414477844",
 }
 
 
@@ -94,7 +97,8 @@ class DependencyManifestUnchangedTest(unittest.TestCase):
             if not p.is_file():
                 drifted.append(f"{rel}（文件缺失）")
                 continue
-            actual = hashlib.sha256(p.read_bytes()).hexdigest()
+            # Normalize CRLF so Windows checkouts hash the same dependency content as CI.
+            actual = hashlib.sha256(p.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
             if actual != expected:
                 drifted.append(f"{rel}\n      期望 {expected}\n      实际 {actual}")
         self.assertEqual(

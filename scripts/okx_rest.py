@@ -27,6 +27,7 @@ import hmac
 import json
 import os
 import re
+import urllib.error
 import urllib.parse
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -46,7 +47,7 @@ __all__ = [
     "place_algo_oco", "cancel_algo_orders", "amend_algo_sl", "pending_algo_orders",
 ]
 
-DEFAULT_OKX_BROKER_TAG = "6e2191f027c6SUDE"
+DEFAULT_OKX_BROKER_TAG = ""
 
 
 #: OKX 对 `tag` 的取值规范（官方接口文档）：字母（区分大小写）与数字的组合，不超过 16 位。
@@ -55,12 +56,13 @@ _TAG_SHAPE = re.compile(r"^[0-9A-Za-z]{1,16}$")
 
 
 def effective_broker_tag() -> str:
-    """当前**生效**的经纪商 tag（与真正发单时用的是同一个取值口径）。
-
-    硬编码固定使用系统专属经纪商代码 DEFAULT_OKX_BROKER_TAG，不接受外部环境变量篡改或覆盖，
-    确保所有 OKX 下单、策略委托与市价全平的返佣与交易归属永远锁定。
-    """
-    return DEFAULT_OKX_BROKER_TAG
+    """Return the disclosed operator-configured OKX broker tag, or no tag."""
+    value = str(os.getenv("OKX_BROKER_TAG") or DEFAULT_OKX_BROKER_TAG).strip()
+    if not value:
+        return ""
+    if not _TAG_SHAPE.fullmatch(value):
+        raise ValueError("OKX_BROKER_TAG must be 1-16 ASCII letters or digits")
+    return value
 
 
 def _with_broker_tag(params: dict[str, Any], tag: str | None) -> dict[str, Any]:
@@ -256,6 +258,14 @@ def request(
     try:
         with urlopen(http_request, timeout=timeout) as response:
             payload_json = json.loads(response.read().decode("utf-8") or "{}")
+    except urllib.error.HTTPError as exc:
+        try:
+            error_payload = json.loads(exc.read().decode("utf-8") or "{}")
+        except Exception:
+            error_payload = {}
+        code = str(error_payload.get("code") or exc.code)
+        message = str(error_payload.get("msg") or exc.reason or "HTTP request failed")
+        raise RuntimeError(f"OKX {code}: {message}") from exc
     except Exception as exc:
         raise RuntimeError(f"OKX V5 网络请求失败：{type(exc).__name__}: {exc}") from exc
     if not isinstance(payload_json, dict):
@@ -417,11 +427,18 @@ def close_position(
 # Trade — order queries (historical note: replaces the removed CLI "okx swap orders [--history]")
 # ---------------------------------------------------------------------------
 
-def pending_orders(inst_id: str | None = None, *, inst_type: str = "SWAP", ord_type: str | None = None, env: OKXEnvironment | None = None) -> list[dict[str, Any]]:
-    return request("GET", "/api/v5/trade/orders-pending", {"instType": inst_type, "instId": inst_id, "ordType": ord_type}, env=env)
+def _effective_inst_type(inst_type: str | None, env: OKXEnvironment | None) -> str:
+    resolved = str(inst_type or (env or current_environment()).product_profile.inst_type).strip().upper()
+    if resolved not in {"SPOT", "SWAP", "FUTURES"}:
+        raise ValueError("OKX instrument type must be SPOT, SWAP, or FUTURES")
+    return resolved
 
 
-def orders_history(*, inst_type: str = "SWAP", inst_id: str | None = None, state: str | None = None,
+def pending_orders(inst_id: str | None = None, *, inst_type: str | None = None, ord_type: str | None = None, env: OKXEnvironment | None = None) -> list[dict[str, Any]]:
+    return request("GET", "/api/v5/trade/orders-pending", {"instType": _effective_inst_type(inst_type, env), "instId": inst_id, "ordType": ord_type}, env=env)
+
+
+def orders_history(*, inst_type: str | None = None, inst_id: str | None = None, state: str | None = None,
                    begin: Any = None, end: Any = None, limit: int = 100,
                    after: str | None = None, before: str | None = None,
                    env: OKXEnvironment | None = None) -> list[dict[str, Any]]:
@@ -433,16 +450,16 @@ def orders_history(*, inst_type: str = "SWAP", inst_id: str | None = None, state
     台账「触顶 limit=100」告警即源于此。
     """
     return request("GET", "/api/v5/trade/orders-history", {
-        "instType": inst_type, "instId": inst_id, "state": state, "begin": begin, "end": end,
+        "instType": _effective_inst_type(inst_type, env), "instId": inst_id, "state": state, "begin": begin, "end": end,
         "limit": limit, "after": after, "before": before,
     }, env=env)
 
 
-def fills(*, inst_type: str = "SWAP", inst_id: str | None = None, begin: Any = None, end: Any = None,
+def fills(*, inst_type: str | None = None, inst_id: str | None = None, begin: Any = None, end: Any = None,
           limit: int = 100, env: OKXEnvironment | None = None) -> list[dict[str, Any]]:
     """Recent trade fills (V5 keeps ~3 days here; older history via fills-history)."""
     return request("GET", "/api/v5/trade/fills", {
-        "instType": inst_type, "instId": inst_id, "begin": begin, "end": end, "limit": limit,
+        "instType": _effective_inst_type(inst_type, env), "instId": inst_id, "begin": begin, "end": end, "limit": limit,
     }, env=env)
 
 
@@ -450,11 +467,11 @@ def fills(*, inst_type: str = "SWAP", inst_id: str | None = None, begin: Any = N
 # Account (historical note: replaces the removed CLI "okx account positions/balance/bills/positions-history")
 # ---------------------------------------------------------------------------
 
-def positions(*, inst_type: str = "SWAP", inst_id: str | None = None, env: OKXEnvironment | None = None) -> list[dict[str, Any]]:
-    return request("GET", "/api/v5/account/positions", {"instType": inst_type, "instId": inst_id}, env=env)
+def positions(*, inst_type: str | None = None, inst_id: str | None = None, env: OKXEnvironment | None = None) -> list[dict[str, Any]]:
+    return request("GET", "/api/v5/account/positions", {"instType": _effective_inst_type(inst_type, env), "instId": inst_id}, env=env)
 
 
-def position(inst_id: str, *, inst_type: str = "SWAP", env: OKXEnvironment | None = None) -> dict[str, Any] | None:
+def position(inst_id: str, *, inst_type: str | None = None, env: OKXEnvironment | None = None) -> dict[str, Any] | None:
     """Single instrument position row (or None). Convenience over ``positions``."""
     rows = [row for row in positions(inst_type=inst_type, inst_id=inst_id, env=env) if str(row.get("pos") or "0") != "0"]
     return rows[0] if rows else None
@@ -475,13 +492,13 @@ def bills(*, inst_type: str | None = None, inst_id: str | None = None, mgn_mode:
     if not 1 <= limit <= 100:
         raise ValueError("bills limit must be 1..100")
     return request("GET", "/api/v5/account/bills", {
-        "instType": inst_type, "instId": inst_id, "mgnMode": mgn_mode, "type": type,
+        "instType": _effective_inst_type(inst_type, env), "instId": inst_id, "mgnMode": mgn_mode, "type": type,
         "ccy": ccy, "begin": begin, "end": end, "limit": limit,
         "before": before, "after": after,
     }, env=env)
 
 
-def positions_history(*, inst_type: str = "SWAP", inst_id: str | None = None, limit: int = 100,
+def positions_history(*, inst_type: str | None = None, inst_id: str | None = None, limit: int = 100,
                       after: str | None = None, before: str | None = None,
                       env: OKXEnvironment | None = None) -> list[dict[str, Any]]:
     """平仓历史。分页游标 after/before **只认毫秒时间戳**（实测 2026-09-13：传 posId 报
@@ -493,7 +510,7 @@ def positions_history(*, inst_type: str = "SWAP", inst_id: str | None = None, li
     scripts/sync_full_ledger._fetch_history_paged，边界有重叠）。
     """
     return request("GET", "/api/v5/account/positions-history", {
-        "instType": inst_type, "instId": inst_id, "limit": limit,
+        "instType": _effective_inst_type(inst_type, env), "instId": inst_id, "limit": limit,
         "after": after, "before": before,
     }, env=env)
 
@@ -594,7 +611,7 @@ def amend_algo_sl(
     }, env=env)
 
 
-def pending_algo_orders(inst_id: str | None = None, *, inst_type: str = "SWAP", ord_type: str = "oco",
+def pending_algo_orders(inst_id: str | None = None, *, inst_type: str | None = None, ord_type: str = "oco",
                         limit: int = 100, before: str | None = None, after: str | None = None, env: OKXEnvironment | None = None) -> list[dict[str, Any]]:
     """GET /api/v5/trade/orders-algo-pending. ``instId`` is sent to the API and
     additionally filtered locally — older deployments ignored the query filter."""
@@ -603,7 +620,7 @@ def pending_algo_orders(inst_id: str | None = None, *, inst_type: str = "SWAP", 
     if "," in ord_type and set(ord_type.split(",")) != {"conditional", "oco"}:
         raise ValueError("only conditional,oco may be combined")
     rows = request("GET", "/api/v5/trade/orders-algo-pending", {
-        "instType": inst_type, "instId": inst_id, "ordType": ord_type, "limit": limit,
+        "instType": _effective_inst_type(inst_type, env), "instId": inst_id, "ordType": ord_type, "limit": limit,
         "before": before, "after": after,
     }, env=env)
     if inst_id:

@@ -1,5 +1,6 @@
 import json
 import unittest
+from types import SimpleNamespace
 from requests import Response
 import unittest.mock
 from unittest.mock import patch
@@ -85,6 +86,13 @@ class TestAwsHostFailover(unittest.TestCase):
             data = mds._public_get("/api/v5/market/candles", params={"instId": "X", "bar": "1H", "limit": 3})
         self.assertIsNotNone(data)
         self.assertTrue(any("aws.okx.com" in u for u in sess.urls))
+
+    def test_xperp_environment_uses_eea_public_host(self):
+        import scripts.market_data_service as mds
+
+        env = SimpleNamespace(product_profile=SimpleNamespace(product="xperp"))
+        with patch("scripts.okx_runtime.current_environment", return_value=env):
+            self.assertEqual(mds._public_hosts(), ["https://eea.okx.com"])
 
 
 class TestLocalMathIndicatorFallback(unittest.TestCase):

@@ -52,7 +52,7 @@ _RETIRED_PHRASES = (
     "三阶利润棘轮",
 )
 
-SCHEMA_TITLE = "严格 JSON 规范契约与完整输出骨架 (JSON Schema)"
+SCHEMA_TITLE = "Strict JSON contract and complete output schema (JSON Schema)"
 
 
 class NoPromptProseInCodeTests(unittest.TestCase):
@@ -119,15 +119,15 @@ class JsonProseIsRealTests(unittest.TestCase):
         """出厂口径必须真的是「快节奏·高胜率」而不是残留的旧文案。"""
         import scripts.ai_brain_trader as abt
         effective = abt.get_effective_system_prompt(pl.active_profile())
-        for anchor in ("胜率优先",
-                       "资金周转优先",
-                       "失效即离场",
-                       "时间止损",
-                       "分批止盈",
-                       "结构位"):
+        for anchor in ("Selectivity and win quality",
+                       "Capital turnover",
+                       "thesis disappears",
+                       "time-stop",
+                       "staged profit-taking",
+                       "structural level"):
             self.assertIn(anchor, effective, f"新口径锚点缺失: {anchor}")
         # 反例：旧口径里"死等远端目标"的取向不该作为主基调出现
-        self.assertNotIn("让利润奔跑是唯一目标", effective)
+        self.assertNotIn("Letting profits run is the only objective", effective)
 
 
 class LockedContractIsEnforcedTests(unittest.TestCase):
@@ -195,8 +195,8 @@ class PromptMatchesExecutorConstantsTests(unittest.TestCase):
         """提示词不得写死具体风控数字，必须指向【本周期风险预算】。"""
         import scripts.ai_brain_trader as abt
         effective = abt.get_effective_system_prompt(pl.active_profile())
-        self.assertIn("【本周期风险预算】", effective,
-                      "提示词必须指向运行期风险预算小节")
+        self.assertIn("【Current-cycle risk budget】", effective,
+                      "The prompt must reference the runtime risk-budget section")
         # 反例：具体门禁数值写死进正文（会导致与后台可配风控漂移）
         for forbidden in ("同向持仓上限 3 笔", "杠杆不超过 5x", "目标 R:R ≥ 2.2"):
             self.assertNotIn(forbidden, effective, f"正文写死了动态风控值: {forbidden}")

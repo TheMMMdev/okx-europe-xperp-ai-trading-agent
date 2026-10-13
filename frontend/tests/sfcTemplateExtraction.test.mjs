@@ -57,7 +57,7 @@ export function extractionHijacked(raw) {
 
 /** 按标签深度配平找根模板块（`<template v-if>` / `<template #slot>` 都算一层）。 */
 function balancedRoot(raw) {
-  const rm = raw.match(/^<template>\s*$/m);
+  const rm = raw.match(/^<template>[ \t]*$/m);
   if (!rm) return null;
   const start = rm.index + rm[0].length;
   const re = /<template[\s>]|<\/template>/g;

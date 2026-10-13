@@ -1,9 +1,9 @@
-# AstraQuant Standalone Deployment
+# Quant Agent EU Standalone Deployment
 
 ASTRA runs independently of QwenPaw. The product is composed of:
 
 - `astra_backend.app`: standalone FastAPI control plane and read-only monitoring API.
-- `astra_gateway.worker`: the AstraQuant-native, single-owner scheduler and durable notification-delivery worker for the 15-minute trader, 60-second factor refresh, 10-minute news refresh, daily reports, evolution review, and nightly backup.
+- `astra_gateway.worker`: the Quant Agent EU-native, single-owner scheduler and durable notification-delivery worker for the 15-minute trader, 60-second factor refresh, 10-minute news refresh, daily reports, evolution review, and nightly backup.
 - `scripts/`: strategy and execution modules, run as isolated Python processes.
 - `.env` + encrypted ASTRA Secret Store: LLM, OKX API Key, and notification credentials. A complete OKX key trio is required for private requests and trading; public market data needs no credentials.
 - Native OKX V5 REST signing: the single private connectivity path for the strategy, control plane, and ledger.
@@ -89,7 +89,7 @@ No HTTP trade-trigger endpoint is exposed except the separately enabled, confirm
 
 ## QwenPaw Container Coexistence
 
-When `www.astraquant.tech` is already reverse-proxied into a QwenPaw container, keep QwenPaw on its existing port and let the AstraQuant standalone gateway own port `8080`. `astra_backend.app` mounts the existing dashboard at `/`, while `/admin` and `/api/v1/*` remain AstraQuant-native routes. This preserves the hostname, reverse-proxy rules, dashboard paths, QwenPaw process, and QwenPaw backup layout.
+When `YOUR_DOMAIN` is already reverse-proxied into a QwenPaw container, keep QwenPaw on its existing port and let the Quant Agent EU standalone gateway own port `8080`. `astra_backend.app` mounts the existing dashboard at `/`, while `/admin` and `/api/v1/*` remain Quant Agent EU routes. This preserves the hostname, reverse-proxy rules, dashboard paths, QwenPaw process, and QwenPaw backup layout.
 
 Add the `[program:astra-backend]` block from the container supervisor configuration and restart the container during a maintenance window so supervisord adopts it. Do not run the legacy `astra_backend.dashboard_cache` Uvicorn process at the same time as `astra_backend.app`.
 

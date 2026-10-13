@@ -10,7 +10,7 @@ import { usePopoverFocus } from '../../composables/usePopoverFocus';
 import BaseSegmented from '../base/BaseSegmented.vue';
 import BaseSwitch from '../base/BaseSwitch.vue';
 
-const { t, currentLocale, setLocale, LOCALE_OPTIONS } = useI18n();
+const { t } = useI18n();
 const { theme, setTheme, cvd, toggleCvd } = useTheme();
 
 const THEME_OPTIONS = computed(() => [
@@ -83,16 +83,6 @@ onBeforeUnmount(() => {
               :model-value="theme"
               :options="THEME_OPTIONS"
               @update:model-value="(v: any) => setTheme(v)"
-            />
-          </div>
-          <div>
-            <p class="form-label mb-1.5">{{ t('dash.shell.settings.language') }}</p>
-            <BaseSegmented
-              class="w-full"
-              :label="t('dash.shell.settings.language')"
-              :model-value="currentLocale"
-              :options="LOCALE_OPTIONS"
-              @update:model-value="(v: any) => setLocale(v)"
             />
           </div>
           <label class="flex cursor-pointer items-center justify-between gap-3 py-0.5">

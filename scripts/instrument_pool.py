@@ -176,6 +176,13 @@ def _precision(tick_size: str) -> int:
     return len(normalized.split(".", 1)[1]) if "." in normalized else 0
 
 
+def xperp_pool_from_rows(rows: list[dict[str, Any]], settlement_currency: str = "USD",
+                          allowed_bases: tuple[str, ...] = ("BTC", "ETH"),
+                          now_ms: int | None = None) -> list[dict[str, Any]]:
+    from scripts.xperp import pool_from_instruments
+    return pool_from_instruments(rows, settlement_currency, allowed_bases=allowed_bases, now_ms=now_ms)
+
+
 def from_okx_instrument(raw: dict[str, Any]) -> dict[str, Any]:
     inst_id = str(raw.get("instId", "")).upper()
     base = str(raw.get("baseCcy") or inst_id.split("-", 1)[0]).upper()

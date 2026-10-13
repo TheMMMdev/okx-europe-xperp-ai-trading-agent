@@ -87,9 +87,9 @@ function stubFetch(impl) { globalThis.fetch = impl; }
 
 // ---------------- normalizeDetail ----------------
 console.log('normalizeDetail:');
-check('字符串 detail 原样', normalizeDetail({ detail: '出错了' }, 400) === '出错了');
-check('422 数组转中文', normalizeDetail({ detail: [{ loc: ['body', 'x'], msg: '必填' }] }, 422)
-      === 'x：必填');
+check('CJK string detail normalized', normalizeDetail({ detail: '出错了' }, 400) === 'Request failed');
+check('CJK validation detail normalized', normalizeDetail({ detail: [{ loc: ['body', 'x'], msg: '必填' }] }, 422)
+      === 'x: Request failed');
 check('无 detail 回落 HTTP 状态', normalizeDetail({}, 500) === 'HTTP 500');
 check('message 兜底', normalizeDetail({ message: 'm' }, 400) === 'm');
 
@@ -121,7 +121,7 @@ stubFetch(async () => new Response('{}', { status: 401 }));
 let err = null;
 try { await http('/api/y'); } catch (e) { err = e; }
 check('抛 HttpError', err instanceof HttpError, String(err));
-check('文案=会话已过期', err && err.message === '会话已过期，请重新登录', err && err.message);
+check('message=Session expired', err && err.message === 'Session expired, please sign in again', err && err.message);
 check('status=401', err && err.status === 401);
 check('触发了 logout()', __authStub.loggedOut === 1, String(__authStub.loggedOut));
 
@@ -132,7 +132,7 @@ stubFetch(async () => new Response(JSON.stringify({ detail: '未授权' }), { st
 err = null;
 try { await http('/api/z'); } catch (e) { err = e; }
 check('不触发 logout()', __authStub.loggedOut === 0);
-check('走 detail 文案', err && err.message === '未授权', err && err.message);
+check('CJK detail is normalized', err && err.message === 'Request failed', err && err.message);
 
 // ---------------- 非 2xx 与 422 ----------------
 console.log('http() 错误归一:');
@@ -140,7 +140,7 @@ stubFetch(async () => new Response(JSON.stringify({ detail: [{ loc: ['body', 'p'
 err = null;
 try { await http('/api/w'); } catch (e) { err = e; }
 check('422 → HttpError', err instanceof HttpError);
-check('422 文案= p：非法', err && err.message === 'p：非法', err && err.message);
+check('422 CJK detail is normalized', err && err.message === 'p: Request failed', err && err.message);
 check('422 status 保留', err && err.status === 422);
 
 // ---------------- 网络层失败（本刀修的那条漂移） ----------------
@@ -149,7 +149,7 @@ stubFetch(async () => { throw new TypeError('Failed to fetch'); });
 err = null;
 try { await http('/api/net'); } catch (e) { err = e; }
 check('抛的是 HttpError 而非裸 TypeError', err instanceof HttpError, String(err));
-check('文案=网络错误，请稍后重试', err && err.message === '网络错误，请稍后重试', err && err.message);
+check('message=Network error', err && err.message === 'Network error, please retry later', err && err.message);
 check('status=0', err && err.status === 0);
 
 // ---------------- 空响应体 ----------------

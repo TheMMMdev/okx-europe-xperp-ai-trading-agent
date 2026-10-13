@@ -33,8 +33,8 @@ class VersionConstantTests(unittest.TestCase):
         self.assertEqual(V.APP_VERSION, f"v{V.__version__}")
 
     def test_the_branding_names(self):
-        self.assertEqual(V.APP_NAME, "AstraQuant")
-        self.assertEqual(V.APP_NAME_EN, "AstraQuant")
+        self.assertEqual(V.APP_NAME, "Quant Agent EU")
+        self.assertEqual(V.APP_NAME_EN, "Quant Agent EU")
 
     def test_the_module_file_exists_and_is_named_version(self):
         self.assertEqual(Path(V.__file__).name, "version.py")

@@ -193,7 +193,8 @@ def route_and_reserve_signal(inst_id: str, side: str, price: float,
     # 幂等豁免：同 (account_key, intent) 重提不是新增占用（reserve 底层本就幂等），
     # 需从 gross_exposure 扣回该 intent 已占额，否则重试会被总闸误杀。
     intent = str(intent_id or f"{inst_id}:{side}:{int(time.time())}")
-    account_key = (venue, environment, str(env.fingerprint))
+    product = str(getattr(getattr(env, "product_profile", None), "product", "swap"))
+    account_key = (venue, environment, f"{env.fingerprint}-{product}")
     _prior_same_intent = 0.0
     if budget_total > 0:
         try:

@@ -30,7 +30,6 @@ from calculus_engine import (
 )
 import factor_library
 import ai_factor_trader
-import okx_rest  # 平仓请求上的经纪商 tag 以它为准（不复制字面量，避免两处漂移）
 from tests.okx_algo_http_fixture import install_http
 
 
@@ -345,11 +344,10 @@ class AiFactorTraderPositionProtectionTest(unittest.TestCase):
         with patch.object(ai_factor_trader,"record_trade"), patch.object(ai_factor_trader,"add_stop_cooldown"), patch.object(ai_factor_trader,"notify_trade_close") as notify_close:
             closed,reason=ai_factor_trader.manage_position_tp_and_trailing(self._factor(),position,trackers,"2026-09-02 15:00:00",actions)
         self.assertTrue(closed); self.assertEqual(reason,"已硬止损")
-        # 2026-09：平仓请求也带经纪商 tag（`okx_rest.close_position` 补上了它 ——
-        # 此前每一笔市价全平都不带标记，那些成交不计经纪商归属）。
+        # 默认不带经纪商 tag；只有操作者显式配置授权代码时才附加。
         self.assertEqual(self.http.calls('/api/v5/trade/close-position'), [
             ('POST', {'instId': 'SOL-USDT-SWAP', 'mgnMode': 'cross', 'posSide': 'long',
-                      'autoCxl': True, 'tag': okx_rest.DEFAULT_OKX_BROKER_TAG})])
+                      'autoCxl': True})])
         self.assertNotIn("SOL-USDT-SWAP_long",trackers)
         self.assertTrue(any("触发硬止损" in item for item in actions))
         # 2026-09-30（通知单一事实源）：本路径**不再发布**金额通知 —— 同一笔此前会被
@@ -377,7 +375,7 @@ class AiFactorTraderPositionProtectionTest(unittest.TestCase):
         self.assertEqual(body, dict(instId='SOL-USDT-SWAP', side='sell', sz='4', posSide='long',
             tdMode='cross', ordType='oco', tpTriggerPx='106', slTriggerPx='101', tpOrdPx='-1',
             slOrdPx='-1', tpTriggerPxType='mark', slTriggerPxType='mark',
-            reduceOnly=True, cxlOnClosePos=True, tag=okx_rest.DEFAULT_OKX_BROKER_TAG))
+            reduceOnly=True, cxlOnClosePos=True))
         self.assertEqual(len(self.http.calls('/api/v5/trade/orders-algo-pending')), 2)
 
     def test_stale_order_query_failure_aborts_cleanup(self):
@@ -404,11 +402,10 @@ class AiFactorTraderPositionProtectionTest(unittest.TestCase):
         with patch.object(ai_factor_trader,"record_trade"), patch.object(ai_factor_trader,"add_stop_cooldown"), patch.object(ai_factor_trader,"notify_trade_close") as notify_close:
             closed,reason=ai_factor_trader.manage_position_tp_and_trailing(self._factor(102.5),position,trackers,"2026-09-02 15:00:00",actions)
         self.assertTrue(closed); self.assertEqual(reason,"保护失效安全退出")
-        # 2026-09：平仓请求也带经纪商 tag（`okx_rest.close_position` 补上了它 ——
-        # 此前每一笔市价全平都不带标记，那些成交不计经纪商归属）。
+        # 默认不带经纪商 tag；只有操作者显式配置授权代码时才附加。
         self.assertEqual(self.http.calls('/api/v5/trade/close-position'), [
             ('POST', {'instId': 'SOL-USDT-SWAP', 'mgnMode': 'cross', 'posSide': 'long',
-                      'autoCxl': True, 'tag': okx_rest.DEFAULT_OKX_BROKER_TAG})])
+                      'autoCxl': True})])
         self.assertNotIn("SOL-USDT-SWAP_long",trackers)
         # 同上：金额通知不再由本路径发布（单一事实源 = 台账路径）
         notify_close.assert_not_called()

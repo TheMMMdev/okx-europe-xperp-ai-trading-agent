@@ -38,7 +38,7 @@ import scripts.prompt_library as pl
 # 线上真实方案库路径：测试若指向它，说明沙箱没生效，必须立刻失败
 REAL_LIBRARY = (Path(__file__).resolve().parents[2] / "data" / "prompt_library.json").resolve()
 #: 新契约下唯一的代码基座模块标题（= 输出 JSON Schema）。
-BASE_TITLE = "严格 JSON 规范契约与完整输出骨架 (JSON Schema)"
+BASE_TITLE = "Strict JSON contract and complete output schema (JSON Schema)"
 #: 合成的多节基座：只用于考 `align_pipeline_sources` 的**逐模块**来源判定。
 SYNTHETIC_BASE = ("==== 【甲节】 ====\n甲节正文\n\n"
                   "==== 【乙节】 ====\n乙节正文\n\n"
@@ -106,7 +106,7 @@ class BaseTemplateRegistryTests(unittest.TestCase):
         with_base = [key for key in pl.TEMPLATE_KEYS if pl.base_template_text(key).strip()]
         self.assertEqual(with_base, ["trading_system"],
                          f"只有 trading_system 应有代码基座，实际: {with_base}")
-        self.assertIn("严格 JSON 规范契约", pl.base_template_text("trading_system"))
+        self.assertIn("Strict JSON contract", pl.base_template_text("trading_system"))
 
     def test_base_text_matches_the_code_prompt_it_claims(self):
         import scripts.ai_brain_trader as abt
@@ -167,7 +167,7 @@ class FlatUpdateProvenanceTests(_PromptLibraryCase):
         import scripts.ai_brain_trader as abt
         rendered = pl.apply_module_layout(
             abt.SYSTEM_PROMPT, profile, "trading_system", "交易 System")
-        self.assertEqual(rendered.count("严格 JSON 规范契约与完整输出骨架"), 1,
+        self.assertEqual(rendered.count("Strict JSON contract and complete output schema"), 1,
                          "基座被前置了两次——提示词翻倍回归")
         self.assertLessEqual(len(rendered), len(abt.SYSTEM_PROMPT) + 16)
 

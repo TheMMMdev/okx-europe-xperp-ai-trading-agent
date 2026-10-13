@@ -43,17 +43,17 @@ watch(() => Boolean(zoomImage.value), syncZoomFocus);
 onBeforeUnmount(releaseZoomFocus);
 
 const sections = [
-  { id: 'overview', title: '1. 系统架构与量化哲学', icon: TrendingUp },
-  { id: 'dashboard', title: '2. 量化工作台与资产控制舱', icon: Terminal },
-  { id: 'council', title: '3. 对冲基金投委会 (Trading Desk)', icon: Users },
-  { id: 'policy_snapshot', title: '4. 策略版本快照控制台 (Policy Snapshot)', icon: Layers },
-  { id: 'prompt_studio', title: '5. 提示词策略与语义变量插槽', icon: FileText },
-  { id: 'interceptors', title: '6. Python 物理拦截插件 (Fail-Closed)', icon: ShieldCheck },
-  { id: 'risk_control', title: '7. 执行层风控管理中心', icon: Lock },
-  { id: 'llm_hub', title: '8. 模型连接与 API 协议支持', icon: Cpu },
-  { id: 'self_evolution', title: '9. 自进化认知与长期记忆闭环', icon: Brain },
-  { id: 'deployment', title: '10. 生产部署与多通道通知', icon: Server },
-  { id: 'faq', title: '11. 常见问题解答与风控底线 (FAQ)', icon: ShieldAlert },
+  { id: 'overview', title: '1. Architecture and principles', icon: TrendingUp },
+  { id: 'dashboard', title: '2. Trading workstation', icon: Terminal },
+  { id: 'council', title: '3. Multi-model trading desk', icon: Users },
+  { id: 'policy_snapshot', title: '4. Policy snapshots', icon: Layers },
+  { id: 'prompt_studio', title: '5. Prompt strategy', icon: FileText },
+  { id: 'interceptors', title: '6. Fail-closed interceptors', icon: ShieldCheck },
+  { id: 'risk_control', title: '7. Execution risk controls', icon: Lock },
+  { id: 'llm_hub', title: '8. Model and API support', icon: Cpu },
+  { id: 'self_evolution', title: '9. Review and memory', icon: Brain },
+  { id: 'deployment', title: '10. Production deployment', icon: Server },
+  { id: 'faq', title: '11. FAQ and safety boundaries', icon: ShieldAlert },
 ];
 
 function scrollToSection(id: string) {
@@ -136,7 +136,7 @@ onUnmounted(() => {
           <span
             class="dsh-pill font-mono text-3xs border border-white/10 bg-zinc-900/60 text-zinc-400"
           >
-            {{ APP_VERSION }} 文档中心
+            {{ APP_VERSION }} Documentation
           </span>
         </div>
       </div>
@@ -159,10 +159,11 @@ onUnmounted(() => {
           class="hidden sm:inline-flex btn btn-ghost h-7 px-3 text-xs font-medium cursor-pointer items-center gap-1.5 rounded-lg border-white/10 hover:border-emerald-500/30"
         >
           <Lock class="w-3.5 h-3.5 text-emerald-400" />
-          <span>控制台</span>
+          <span>Console</span>
         </button>
 
         <a
+          v-if="OFFICIAL_REPO"
           :href="OFFICIAL_REPO"
           target="_blank"
           rel="noopener noreferrer"
@@ -224,19 +225,28 @@ onUnmounted(() => {
         </nav>
 
         <div class="dsh-card-sub mt-6 p-3.5 text-xs space-y-2">
-          <div class="text-3xs uppercase font-bold text-[var(--ink-3)]">社区交流与极客讨论</div>
-          <div class="font-bold flex items-center justify-between text-[var(--ink-1)]">
-            <span>QQ 官方群</span>
-            <span class="dsh-pill font-mono font-bold text-3xs">655973677</span>
-          </div>
+          <div class="text-3xs uppercase font-bold text-[var(--ink-3)]">Independent distribution</div>
           <p class="text-3xs text-[var(--ink-3)] leading-body">
-            欢迎量化极客、提示词工程师、深度求索 R1 用户共同交流探索。
+            Repository, site, and community links are configured by the operator and are not included by default.
           </p>
         </div>
       </aside>
 
       <!-- Right Content Area -->
       <main class="min-w-0 flex-1 space-y-12 pb-24">
+        <section id="overview" class="space-y-4 pt-2 scroll-mt-14"><h2 class="text-lg sm:text-xl font-bold text-[var(--ink-strong)]">Architecture and principles</h2><p class="text-sm leading-body text-[var(--ink-2)]">Quant Agent EU separates AI proposals from deterministic execution. Python risk gates, product-aware reconciliation, exchange-side protection, and fail-closed account checks retain final authority.</p></section>
+        <section id="dashboard" class="space-y-4 pt-6 border-t scroll-mt-14" style="border-color: var(--line-1)"><h2 class="text-lg sm:text-xl font-bold text-[var(--ink-strong)]">Trading workstation</h2><p class="text-sm leading-body text-[var(--ink-2)]">The workstation combines account state, positions, orders, market structure, factors, and execution health. Missing data is reported as unavailable rather than presented as healthy or empty.</p></section>
+        <section id="council" class="space-y-4 pt-6 border-t scroll-mt-14" style="border-color: var(--line-1)"><h2 class="text-lg sm:text-xl font-bold text-[var(--ink-strong)]">Multi-model trading desk</h2><p class="text-sm leading-body text-[var(--ink-2)]">Optional model seats can submit independent analyses, challenge one another, and produce a structured order proposal. Their output cannot bypass deterministic sizing, geometry, listing, expiry, or exposure checks.</p></section>
+        <section id="policy_snapshot" class="space-y-4 pt-6 border-t scroll-mt-14" style="border-color: var(--line-1)"><h2 class="text-lg sm:text-xl font-bold text-[var(--ink-strong)]">Policy snapshots</h2><p class="text-sm leading-body text-[var(--ink-2)]">Named snapshots preserve prompt, council, interceptor, and risk-policy state for review and controlled rollback.</p></section>
+        <section id="prompt_studio" class="space-y-4 pt-6 border-t scroll-mt-14" style="border-color: var(--line-1)"><h2 class="text-lg sm:text-xl font-bold text-[var(--ink-strong)]">Prompt strategy</h2><p class="text-sm leading-body text-[var(--ink-2)]">Prompt modules receive explicit account, market, order, news, risk-budget, and memory slots. Prompts are advisory; execution constraints remain outside the model.</p></section>
+        <section id="interceptors" class="space-y-4 pt-6 border-t scroll-mt-14" style="border-color: var(--line-1)"><h2 class="text-lg sm:text-xl font-bold text-[var(--ink-strong)]">Fail-closed interceptors</h2><p class="text-sm leading-body text-[var(--ink-2)]">Interceptors enforce direction, confidence, risk/reward, price distance, leverage, margin, contract sizing, expiry, and product routing before an order can be submitted.</p></section>
+        <section id="risk_control" class="space-y-4 pt-6 border-t scroll-mt-14" style="border-color: var(--line-1)"><h2 class="text-lg sm:text-xl font-bold text-[var(--ink-strong)]">Execution risk controls</h2><p class="text-sm leading-body text-[var(--ink-2)]">The public defaults use isolated margin, one position, 1× leverage, a daily-loss circuit breaker, no pyramiding, and disabled live X-Perp execution.</p></section>
+        <section id="llm_hub" class="space-y-4 pt-6 border-t scroll-mt-14" style="border-color: var(--line-1)"><h2 class="text-lg sm:text-xl font-bold text-[var(--ink-strong)]">Model and API support</h2><p class="text-sm leading-body text-[var(--ink-2)]">OpenAI-compatible Chat and Responses APIs and Anthropic-compatible Messages APIs are supported. Provider credentials should be stored in the encrypted credential store.</p></section>
+        <section id="self_evolution" class="space-y-4 pt-6 border-t scroll-mt-14" style="border-color: var(--line-1)"><h2 class="text-lg sm:text-xl font-bold text-[var(--ink-strong)]">Review and memory</h2><p class="text-sm leading-body text-[var(--ink-2)]">The review pipeline may derive bounded lessons from closed-trade evidence. It must not invent unavailable market observations or weaken hard controls.</p></section>
+        <section id="deployment" class="space-y-4 pt-6 border-t scroll-mt-14" style="border-color: var(--line-1)"><h2 class="text-lg sm:text-xl font-bold text-[var(--ink-strong)]">Production deployment</h2><p class="text-sm leading-body text-[var(--ink-2)]">Deploy with Docker Compose, keep the dashboard on localhost or behind an authenticated reverse proxy, grant API keys Read and Trade permissions only, and never enable withdrawals.</p></section>
+        <section id="faq" class="space-y-4 pt-6 border-t scroll-mt-14" style="border-color: var(--line-1)"><h2 class="text-lg sm:text-xl font-bold text-[var(--ink-strong)]">FAQ and safety boundaries</h2><p class="text-sm leading-body text-[var(--ink-2)]">The integration has been lifecycle-tested, but profitability is unproven. Start with demo or shadow operation, validate account eligibility and instrument rules, and enable live execution only after independent review.</p></section>
+      </main>
+      <main v-if="false" class="min-w-0 flex-1 space-y-12 pb-24">
         <!-- 1. 系统概览与量化哲学 -->
         <section id="overview" class="space-y-4 pt-2 scroll-mt-14">
           <div class="flex items-center space-x-2">
@@ -245,7 +255,7 @@ onUnmounted(() => {
           </div>
 
           <p class="text-xs sm:text-sm leading-body font-sans text-[var(--ink-2)]">
-            <strong>AstraQuant</strong> 是一套专为高波动加密货币（Crypto）打造的<strong>机构级全自动波段量化决策与执行系统</strong>。系统通过 OKX V5 REST API 直签执行私有账户与交易请求。系统运行在严格的北京时间（UTC+8）自然日财务基准之上，聚焦 1H~4H 大级别顺势波段，以<strong>“胜率第一、宁缺毋滥、三位一体 Fail-Closed 物理硬防线”</strong>为最高风控宗旨。
+            <strong>Quant Agent EU</strong> 是一套专为高波动加密货币（Crypto）打造的<strong>机构级全自动波段量化决策与执行系统</strong>。系统通过 OKX V5 REST API 直签执行私有账户与交易请求。系统运行在严格的北京时间（UTC+8）自然日财务基准之上，聚焦 1H~4H 大级别顺势波段，以<strong>“胜率第一、宁缺毋滥、三位一体 Fail-Closed 物理硬防线”</strong>为最高风控宗旨。
           </p>
 
           <!-- 4 Core Pillars Grid -->
@@ -300,7 +310,7 @@ onUnmounted(() => {
           </div>
 
           <p class="text-xs sm:text-sm leading-body font-sans text-[var(--ink-2)]">
-            前台终端采用 AstraQuant 机构级量化工作台架构，首屏直接铺满 K 线图表工位与活跃持仓挂单：
+            前台终端采用 Quant Agent EU 机构级量化工作台架构，首屏直接铺满 K 线图表工位与活跃持仓挂单：
           </p>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 text-xs">

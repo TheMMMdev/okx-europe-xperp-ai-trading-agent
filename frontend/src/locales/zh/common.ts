@@ -132,8 +132,8 @@ export const zhCommon = {
     siteTimeTip: '全站时间：Asia/Shanghai (UTC+8)',
   },
   brand: {
-    name: 'AstraQuant',
-    nameEn: 'AstraQuant',
+    name: 'Quant Agent EU',
+    nameEn: 'Quant Agent EU',
     tagline: 'AI 主脑全自动永续波段终端',
     official: 'Official',
     license: 'MIT License',

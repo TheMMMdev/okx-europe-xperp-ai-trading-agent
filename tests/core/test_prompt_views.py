@@ -214,9 +214,9 @@ class TemplateTests(unittest.TestCase):
         """
         text = self._effective("trading_user")
         self.assertGreater(len(text), 500, "trading_user 渲染为空 —— 定位错了对象")
-        for section in ("当前决策时间戳与市场时效", "账户当前持仓与风险敞口全景",
-                        "在途未成交限价挂单", "AstraQuant 启发式实战认知与长期记忆",
-                        "全标的池原生行情、技术指标与筹码矩阵"):
+        for section in ("Decision timestamp and current-cycle risk budget", "Current positions and risk exposure",
+                        "Pending maker orders", "Quant Agent EU evidence-based trading memory",
+                        "Market, technical, and positioning matrix"):
             with self.subTest(section=section):
                 self.assertIn(section, text)
 
@@ -229,8 +229,8 @@ class TemplateTests(unittest.TestCase):
         """
         text = self._effective("trading_user")
         self.assertGreater(len(text), 500, "trading_user 渲染为空 —— 定位错了对象")
-        self.assertIn("你只能在 System Prompt 的 P0 硬约束内进行综合裁决", text)
-        self.assertIn("P0 硬约束", text)
+        self.assertIn("Operate only inside the System Prompt's P0 constraints", text)
+        self.assertIn("P0 constraints", text)
 
     def test_neither_template_contains_the_split_marker(self):
         """切分标记只由下游拼接产生；模板里自带会把切分点提前。

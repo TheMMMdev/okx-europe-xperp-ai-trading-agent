@@ -194,22 +194,18 @@ test('批 75 修复的文案必须继续走 i18n（回归锚点）', () => {
   assert.match(logic, /admin\.llm\.remoteAutoCollected/, 'remoteAutoCollected 未走 t');
   assert.match(logic, /admin\.llm\.cascadeModelsDeleted/, 'cascadeModelsDeleted 未走 t');
 
-  // 语言名必须来自唯一来源（M9 暴露：此前没有任何断言钉住 LOCALE_OPTIONS）
   const i18n = readFileSync(path.join(SRC, 'composables/useI18n.ts'), 'utf8');
-  assert.match(i18n, /export const LOCALE_OPTIONS/, 'useI18n 未导出 LOCALE_OPTIONS');
-  assert.match(i18n, /\bLOCALE_OPTIONS,/, 'useI18n 的返回值未暴露 LOCALE_OPTIONS');
-  // ⚠️ 断言必须落在**模板的渲染处**，而不是"文件里出现过这个词" ——
-  // 只写 `includes('LOCALE_OPTIONS')` 的话，`const { …, LOCALE_OPTIONS } = useI18n()`
-  // 这一句导入就足以满足它（变异 M9b 当场暴露）。
-  assert.match(
+  assert.match(i18n, /export type LocaleType = 'en-US'/, 'English-only locale contract changed');
+  assert.doesNotMatch(i18n, /import \{ zhCN \}/, 'Chinese locale must not be bundled');
+  assert.doesNotMatch(
     readFileSync(path.join(SRC, 'views/admin/LoginPage.vue'), 'utf8'),
-    /v-for="\(opt, i\) in LOCALE_OPTIONS"/,
-    'LoginPage 的语言按钮未按共享常量渲染，语言名会再次硬编码',
+    /LOCALE_OPTIONS|auth-lang-/,
+    'LoginPage must not render a language selector',
   );
-  assert.match(
+  assert.doesNotMatch(
     readFileSync(path.join(SRC, 'components/dashboard/SettingsPopover.vue'), 'utf8'),
-    /:options="LOCALE_OPTIONS"/,
-    'SettingsPopover 的语言分段未按共享常量渲染',
+    /LOCALE_OPTIONS|settings\.language/,
+    'SettingsPopover must not render a language selector',
   );
 
   // LedgerDrawer 的标签必须整体走 t（不得再把中文贴在 t() 后面）

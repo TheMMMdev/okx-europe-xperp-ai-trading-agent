@@ -32,6 +32,11 @@ LIVE_ENV = {
     "ASTRA_OKX_ENV": "live",
     "OKX_LIVE_API_KEY": "LIVE_AK", "OKX_LIVE_SECRET_KEY": "LIVE_SK", "OKX_LIVE_PASSPHRASE": "LIVE_PP",
 }
+XPERP_ENV = {
+    **LIVE_ENV,
+    "ASTRA_OKX_PRODUCT": "xperp",
+    "ASTRA_XPERP_SETTLEMENT_CCY": "USDC",
+}
 UNCONFIGURED_ENV = {"ASTRA_OKX_ENV": "demo"}  # 无任何键 → configured False
 
 
@@ -86,6 +91,14 @@ class OKXRestHttpBoundaryTests(unittest.TestCase):
             _expected_sign("DEMO_SK", headers["ok-access-timestamp"], "GET",
                            url.replace("https://www.okx.com", ""), ""),
         )
+
+    def test_xperp_profile_queries_futures_without_leaking_into_swap(self):
+        freeze_environment(XPERP_ENV)
+        self.urlopen.return_value = _response(data=[])
+        okx_rest.pending_orders("BTC-USD_UM_XPERP-040431")
+        _, url, _, _ = _captured(self.urlopen)
+        self.assertIn("instType=FUTURES", url)
+        self.assertIn("instId=BTC-USD_UM_XPERP-040431", url)
 
     def test_live_mode_has_no_simulated_header_and_signs_with_body(self):
         freeze_environment(LIVE_ENV)
@@ -434,8 +447,7 @@ class BrokerTagCoverageTest(unittest.TestCase):
                          ["/api/v5/trade/order", "/api/v5/trade/order-algo",
                           "/api/v5/trade/close-position"])
         for path, params in captured:
-            self.assertEqual(params.get("tag"), okx_rest.DEFAULT_OKX_BROKER_TAG,
-                             f"{path} 没有带上经纪商 tag")
+            self.assertNotIn("tag", params, f"{path} must not carry an undisclosed default broker tag")
 
     def test_explicit_and_env_override_precedence(self):
         """显式实参 > 硬编码默认（环境变量不可篡改硬编码专属 tag）。"""
@@ -450,7 +462,7 @@ class BrokerTagCoverageTest(unittest.TestCase):
             self.assertEqual(captured[-1]["tag"], "EXPLICIT")
             with patch.dict("os.environ", {"OKX_BROKER_TAG": "ENVCODE123456789"}):
                 okx_rest.close_position("BTC-USDT-SWAP", "long")
-            self.assertEqual(captured[-1]["tag"], okx_rest.DEFAULT_OKX_BROKER_TAG)
+            self.assertEqual(captured[-1]["tag"], "ENVCODE123456789")
 
 
 class NoOrderEndpointBypassTest(unittest.TestCase):
@@ -509,19 +521,19 @@ class BrokerTagCannotBeSilentlyLostTest(unittest.TestCase):
     # 最后一项是"合法码后面拖后缀"——用合成值拼，不把真实 code 写进来
     BROKEN_VALUES = ("", "   ", "my-broker-code", "x" * 40, "0123456789abABCD-extra")
 
-    def test_broken_env_values_all_fall_back_to_the_default(self):
-        for value in self.BROKEN_VALUES:
-            with self.subTest(value=value):
-                with patch.dict("os.environ", {"OKX_BROKER_TAG": value}):
-                    self.assertEqual(okx_rest.effective_broker_tag(),
-                                     okx_rest.DEFAULT_OKX_BROKER_TAG,
-                                     f"{value!r} 既没被当成合法值，也没回落默认 —— tag 会被弄丢")
+    def test_empty_tag_is_allowed_but_invalid_values_fail_closed(self):
+        for value in ("", "   "):
+            with patch.dict("os.environ", {"OKX_BROKER_TAG": value}):
+                self.assertEqual(okx_rest.effective_broker_tag(), "")
+        for value in ("my-broker-code", "x" * 40, "0123456789abABCD-extra"):
+            with self.subTest(value=value), patch.dict("os.environ", {"OKX_BROKER_TAG": value}):
+                with self.assertRaises(ValueError):
+                    okx_rest.effective_broker_tag()
 
-    def test_broker_tag_is_strictly_hardcoded_to_default(self):
-        """Broker tag 永远硬编码固定为系统专属代码，不接受环境变量篡改。"""
-        for val in ("0123456789abcdef", "custom-tag", "SOME_OTHER_TAG"):
+    def test_valid_disclosed_broker_tag_is_configurable(self):
+        for val in ("0123456789abcdef", "SOMEOTHERTAG"):
             with patch.dict("os.environ", {"OKX_BROKER_TAG": val}):
-                self.assertEqual(okx_rest.effective_broker_tag(), okx_rest.DEFAULT_OKX_BROKER_TAG)
+                self.assertEqual(okx_rest.effective_broker_tag(), val)
 
     def test_all_order_endpoints_still_carry_the_tag_under_an_empty_env(self):
         """最容易漏的一条：空值环境下，**三个产单端点照样都要带 tag**。
@@ -543,8 +555,7 @@ class BrokerTagCannotBeSilentlyLostTest(unittest.TestCase):
                 okx_rest.close_position("BTC-USDT-SWAP", "long")
         self.assertEqual(len(captured), 3)
         for path, params in captured:
-            self.assertEqual(params.get("tag"), okx_rest.DEFAULT_OKX_BROKER_TAG,
-                             f"{path} 在空值环境下把 tag 弄丢了")
+            self.assertNotIn("tag", params, f"{path} unexpectedly carried a default broker tag")
 
     def test_explicit_empty_argument_still_opts_out(self):
         """**显式传参**仍可关掉（那是代码里的有意为之，不是配置失手）。

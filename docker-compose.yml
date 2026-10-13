@@ -1,5 +1,5 @@
 # ==============================================================================
-# AstraQuant - Production Docker Compose Stack
+# Quant Agent EU - Production Docker Compose Stack
 # ==============================================================================
 
 services:
@@ -10,12 +10,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: astraquant:latest
-    container_name: astraquant-backend
+    image: quant-agent-eu:latest
+    container_name: quant-agent-eu-backend
     restart: unless-stopped
     command: ["backend"]
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       - TZ=Asia/Shanghai
       - PYTHONUNBUFFERED=1
@@ -43,8 +43,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: astraquant:latest
-    container_name: astraquant-gateway
+    image: quant-agent-eu:latest
+    container_name: quant-agent-eu-gateway
     restart: unless-stopped
     command: ["gateway"]
     environment:

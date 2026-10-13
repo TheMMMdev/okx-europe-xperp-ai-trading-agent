@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * LandingView.vue · AstraQuant 官方落地页
+ * LandingView.vue · Quant Agent EU 官方落地页
  * ---------------------------------------------------------------------------
  * 极简开源调性重构（对标 ccswitch.io 清爽干净、零冗余装饰）：
  * - 顶栏移除与主页重复的跳转按钮，导航精简高价值入口（实盘/文档/后台/返佣/GitHub）
@@ -31,7 +31,7 @@ import { OFFICIAL_REPO } from '../../config/version';
 import { useReferralChannels } from '../../composables/useReferralChannels';
 
 const router = useRouter();
-const { t, currentLocale, toggleLocale } = useI18n();
+const { t } = useI18n();
 const { channels, load: loadChannels } = useReferralChannels();
 
 // 移动端菜单控制
@@ -49,7 +49,7 @@ function openExternal(url: string) {
 
 // 终端部署命令复制
 const copiedCmd = ref(false);
-const DOCKER_CMD = 'git clone https://github.com/AstraQuant/AstraQuant.git && cd AstraQuant && docker compose up -d';
+const DOCKER_CMD = 'git clone YOUR_REPOSITORY_URL && cd quant-agent-eu && docker compose up -d';
 
 async function copyCommand() {
   try {
@@ -95,9 +95,9 @@ onMounted(() => {
     <header class="sticky top-0 z-50 h-16 w-full border-b border-white/[0.04] bg-[#07080c]/80 backdrop-blur-xl px-4 sm:px-8 flex items-center justify-between">
       <div class="flex items-center gap-8">
         <RouterLink to="/" class="flex items-center gap-2.5 no-underline cursor-pointer group" :aria-label="t('brand.name')">
-          <img src="/favicon.svg" alt="AstraQuant Logo" class="h-6 w-6 rounded transition-opacity group-hover:opacity-80" />
+          <img src="/favicon.svg" alt="Quant Agent EU Logo" class="h-6 w-6 rounded transition-opacity group-hover:opacity-80" />
           <span class="font-bold tracking-tight text-base text-white font-mono">
-            AstraQuant
+            Quant Agent EU
           </span>
         </RouterLink>
 
@@ -116,6 +116,7 @@ onMounted(() => {
             {{ t('landing.nav.console') }}
           </RouterLink>
           <button
+            v-if="OFFICIAL_REPO"
             type="button"
             class="hover:text-white transition-colors cursor-pointer bg-transparent border-0 inline-flex items-center gap-1.5 text-xs text-zinc-400 p-0"
             @click="openExternal(OFFICIAL_REPO)"
@@ -127,16 +128,6 @@ onMounted(() => {
       </div>
 
       <div class="flex items-center gap-3">
-        <!-- 语言切换 -->
-        <button
-          type="button"
-          class="h-8 px-2.5 text-xs font-mono cursor-pointer text-zinc-400 hover:text-white bg-transparent border-0 transition-colors"
-          :aria-label="currentLocale === 'zh-CN' ? 'Switch to English' : '切换至中文'"
-          @click="toggleLocale"
-        >
-          {{ currentLocale === 'zh-CN' ? 'EN' : '中文' }}
-        </button>
-
         <!-- 移动端汉堡切换 -->
         <button
           type="button"
@@ -168,6 +159,7 @@ onMounted(() => {
         {{ t('landing.nav.console') }}
       </RouterLink>
       <button
+        v-if="OFFICIAL_REPO"
         type="button"
         class="py-1.5 hover:text-white text-zinc-300 flex items-center gap-2 bg-transparent border-0 cursor-pointer text-xs"
         @click="mobileMenuOpen = false; openExternal(OFFICIAL_REPO)"
@@ -206,6 +198,7 @@ onMounted(() => {
           </button>
 
           <button
+            v-if="OFFICIAL_REPO"
             type="button"
             class="h-10 sm:h-11 px-5 sm:px-6 rounded-xl border border-white/[0.08] bg-zinc-900/40 hover:bg-zinc-800 text-zinc-200 text-xs font-medium transition-colors inline-flex items-center gap-2 cursor-pointer"
             @click="openExternal(OFFICIAL_REPO)"
@@ -238,7 +231,7 @@ onMounted(() => {
         </div>
       </section>
 
-      <!-- 4. 为什么选择 AstraQuant (经典 6 宫格特性卡片) -->
+      <!-- 4. 为什么选择 Quant Agent EU (经典 6 宫格特性卡片) -->
       <section id="features" class="w-full max-w-4xl px-4 sm:px-6 py-20">
         <div class="text-center max-w-2xl mx-auto mb-14">
           <span class="rounded-full border border-white/[0.06] bg-zinc-900/40 px-3 py-1 text-3xs font-mono text-zinc-400 uppercase tracking-wider font-semibold">
@@ -416,14 +409,14 @@ onMounted(() => {
       <div class="max-w-4xl mx-auto flex flex-col md:flex-row items-start justify-between gap-8">
         <div class="max-w-sm">
           <div class="flex items-center gap-2">
-            <img src="/favicon.svg" alt="AstraQuant Logo" class="h-5 w-5 rounded" />
-            <span class="font-mono font-bold text-sm text-white">AstraQuant</span>
+            <img src="/favicon.svg" alt="Quant Agent EU Logo" class="h-5 w-5 rounded" />
+            <span class="font-mono font-bold text-sm text-white">Quant Agent EU</span>
           </div>
           <p class="mt-2.5 text-3xs text-zinc-500 leading-relaxed">
             {{ t('landing.footer.brandDesc') }}
           </p>
           <div class="mt-3 text-4xs font-mono text-zinc-600">
-            © 2026 AstraQuant. All rights reserved.
+            © 2026 Quant Agent EU. All rights reserved.
           </div>
         </div>
 
@@ -448,7 +441,7 @@ onMounted(() => {
             <ul class="space-y-1.5 list-none p-0 m-0">
               <li><RouterLink to="/docs" class="hover:text-white no-underline text-zinc-400">{{ t('landing.footer.docs') }}</RouterLink></li>
               <li><RouterLink to="/admin" class="hover:text-white no-underline text-zinc-400">{{ t('landing.footer.console') }}</RouterLink></li>
-              <li>
+              <li v-if="OFFICIAL_REPO">
                 <button
                   type="button"
                   class="hover:text-white text-zinc-400 bg-transparent border-0 p-0 cursor-pointer text-start"

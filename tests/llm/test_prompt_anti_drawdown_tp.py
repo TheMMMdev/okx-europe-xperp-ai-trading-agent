@@ -68,10 +68,10 @@ class PromptAntiDrawdownTakeProfitTests(unittest.TestCase):
         sys_prompt = get_effective_system_prompt()
         self.assertGreater(len(sys_prompt), 1000, "effective system prompt 为空 —— 定位错了对象")
         # 语义不变：分批兑现 + 峰值回撤主动止盈 + 失效/时间止损 + CLOSE_MARKET 指令
-        self.assertIn("分批止盈", sys_prompt)
-        self.assertIn("峰值回撤", sys_prompt)
-        self.assertIn("失效即离场", sys_prompt)
-        self.assertIn("时间止损", sys_prompt)
+        self.assertIn("staged profit-taking", sys_prompt)
+        self.assertIn("peak profit", sys_prompt)
+        self.assertIn("thesis disappears", sys_prompt)
+        self.assertIn("time-stop", sys_prompt)
         self.assertIn("CLOSE_MARKET", sys_prompt)
 
 

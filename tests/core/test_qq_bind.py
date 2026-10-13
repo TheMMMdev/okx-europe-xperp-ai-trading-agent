@@ -534,11 +534,11 @@ class CreateBindTaskTests(_Base):
         out = PS.create_bind_task(source="我的来源")
         self.assertTrue(out["connect_url"].startswith(
             f"https://{PS.QQ_HOST}/qqbot/openclaw/connect.html?"))
-        self.assertIn("source=我的来源", out["connect_url"])
+        self.assertIn("source=%E6%88%91%E7%9A%84%E6%9D%A5%E6%BA%90", out["connect_url"])
         self.assertIn("_wv=2", out["connect_url"])
 
     def test_the_default_source(self):
-        self.assertIn("source=AstraQuant", PS.create_bind_task()["connect_url"])
+        self.assertIn("source=Quant%20Agent%20EU", PS.create_bind_task()["connect_url"])
 
     def test_the_generated_key_is_32_bytes_base64(self):
         PS.create_bind_task()

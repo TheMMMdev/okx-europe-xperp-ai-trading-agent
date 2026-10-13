@@ -9,9 +9,29 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from .base import BaseExchangeAdapter, ExchangeCapabilities, InstrumentSpec, canonical_base
+from .base import BaseExchangeAdapter, ExchangeCapabilities, ExchangeCapabilityError, InstrumentSpec, canonical_base
 
 OKX_HOSTS = ("https://www.okx.com", "https://aws.okx.com")
+OKX_EEA_HOSTS = ("https://eea.okx.com",)
+
+
+def filter_xperp_instruments(rows: Any, settlement_currency: str = "", active_only: bool = True) -> List[Dict[str, Any]]:
+    settlement = str(settlement_currency or "").strip().upper()
+    out = []
+    for row in rows or []:
+        if not isinstance(row, dict) or str(row.get("instType") or "").upper() != "FUTURES":
+            continue
+        if str(row.get("ruleType") or "").lower() != "xperp":
+            continue
+        if active_only and str(row.get("state") or "").lower() not in {"live", "trading"}:
+            continue
+        row_settlement = str(row.get("settleCcy") or "").upper()
+        if settlement and row_settlement and row_settlement != settlement:
+            continue
+        if not str(row.get("instId") or "").strip() or not str(row.get("expTime") or "").strip():
+            continue
+        out.append(dict(row))
+    return sorted(out, key=lambda row: (canonical_base(row.get("instId", "")), int(row.get("expTime") or 0)))
 
 
 class OKXPublicAdapter(BaseExchangeAdapter):
@@ -50,12 +70,22 @@ class OKXPublicAdapter(BaseExchangeAdapter):
                              "不无限等待 live；此变更不针对普通 limit/market/ioc/fok",
     )
 
+    def __init__(self, *args: Any, product: str = "swap", settlement_currency: str = "", **kwargs: Any) -> None:
+        from scripts.okx_runtime import product_profile
+        super().__init__(*args, **kwargs)
+        self.product_profile = product_profile(product, settlement_currency)
+
+    def _hosts(self) -> tuple[str, ...]:
+        if self._active_product_profile().product == "xperp":
+            return OKX_EEA_HOSTS
+        return OKX_HOSTS
+
     def _get(self, path: str, params: Optional[Dict[str, Any]] = None,
              timeout: float = 4.0) -> Any:
         """返回 V5 data 数组；双域名逐一试。"""
         query = urlencode(params or {})
         url_path = path + (f"?{query}" if query else "")
-        for host in OKX_HOSTS:
+        for host in self._hosts():
             try:
                 req = Request(host + url_path, headers={"User-Agent": "ASTRA-Quant-Desk/7.8"})
                 with urlopen(req, timeout=timeout) as resp:
@@ -65,6 +95,31 @@ class OKXPublicAdapter(BaseExchangeAdapter):
             except Exception:
                 continue
         return None
+
+    def fetch_xperp_instruments(self, settlement_currency: str = "", active_only: bool = True) -> List[Dict[str, Any]]:
+        rows = self._get("/api/v5/public/instruments", {"instType": "FUTURES"}, timeout=6.0)
+        return filter_xperp_instruments(rows, settlement_currency, active_only)
+
+    def _active_product_profile(self):
+        profile = getattr(self, "product_profile", None)
+        if profile is not None:
+            return profile
+        from scripts.okx_runtime import product_profile
+        return product_profile("swap")
+
+    def native_symbol(self, symbol: str) -> str:
+        text = str(symbol or "").strip().upper()
+        if "_XPERP-" in text:
+            return text
+        profile = self._active_product_profile()
+        if profile.product == "swap":
+            return super().native_symbol(symbol)
+        base = canonical_base(text)
+        matches = [row for row in self.fetch_xperp_instruments(profile.settlement_currency)
+                   if canonical_base(row.get("instId", "")) == base]
+        if not matches:
+            raise ExchangeCapabilityError(f"No active {profile.settlement_currency} X-Perp found for {base}")
+        return str(matches[-1]["instId"])
 
     def fetch_ticker(self, symbol: str) -> Optional[Dict[str, Any]]:
         inst = self.native_symbol(symbol)
@@ -135,10 +190,13 @@ class OKXPublicAdapter(BaseExchangeAdapter):
         return None
 
     def _load_spec(self, inst_id: str) -> Optional[InstrumentSpec]:
+        profile = self._active_product_profile()
         rows = self._get("/api/v5/public/instruments",
-                         {"instType": "SWAP", "instId": inst_id}, timeout=6.0)
+                         {"instType": profile.inst_type, "instId": inst_id}, timeout=6.0)
         raw = rows[0] if rows else None
         if not raw:
+            return None
+        if profile.product == "xperp" and not filter_xperp_instruments([raw], profile.settlement_currency):
             return None
         return InstrumentSpec(
             venue="okx", inst_id=inst_id, base=self.canonical(inst_id),
@@ -147,7 +205,7 @@ class OKXPublicAdapter(BaseExchangeAdapter):
             ct_val=float(raw.get("ctVal") or 1),
             min_size=float(raw.get("minSz") or 1),
             max_leverage=0.0,
-            status="trading" if str(raw.get("state", "trading")) == "trading" else "closed",
+            status="trading" if str(raw.get("state", "trading")).lower() in {"live", "trading"} else "closed",
             raw=raw,
         )
 
@@ -175,8 +233,10 @@ class OKXAdapter(OKXPublicAdapter):
     """Full-featured OKX V5 adapter supporting both public market data and private trading."""
 
     def __init__(self, api_key: str = "", secret_key: str = "", passphrase: str = "",
-                 environment: str = "demo", **kwargs: Any) -> None:
-        super().__init__(**kwargs)
+                 environment: str = "demo", product: str = "swap",
+                 settlement_currency: str = "", **kwargs: Any) -> None:
+        super().__init__(environment=environment, product=product,
+                         settlement_currency=settlement_currency, **kwargs)
         self.api_key = api_key or ""
         self.secret_key = secret_key or ""
         self.passphrase = passphrase or ""
@@ -187,11 +247,16 @@ class OKXAdapter(OKXPublicAdapter):
         if self.api_key and self.secret_key and self.passphrase:
             # 审计 D4：OKXEnvironment 是 frozen dataclass——simulated/configured
             # 是派生 property，旧写法当构造参数传=一调用即 TypeError（接线即炸）。
+            selected = current_environment()
+            profile = self._active_product_profile()
             return OKXEnvironment(
                 mode=str(self.environment).strip().lower(),
                 api_key=self.api_key,
                 secret_key=self.secret_key,
                 passphrase=self.passphrase,
+                base_url=selected.base_url,
+                product=profile.product,
+                settlement_currency=profile.settlement_currency,
             )
         return current_environment()
 
@@ -284,6 +349,8 @@ class OKXAdapter(OKXPublicAdapter):
                     client_order_id: Optional[str] = None, **kwargs: Any) -> Dict[str, Any]:
         from scripts import okx_rest
         env = self._get_okx_env()
+        if env.product_profile.product == "xperp":
+            raise ExchangeCapabilityError("X-Perp execution is disabled until product-specific protection checks pass")
         inst_id = self.native_symbol(symbol)
         # 单型：显式传入优先；否则**按有无价格推断**（市价单不带价、限价单必带价）。
         #

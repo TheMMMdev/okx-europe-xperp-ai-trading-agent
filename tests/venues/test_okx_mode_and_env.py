@@ -18,7 +18,7 @@ import unittest
 from unittest.mock import patch
 
 import astra_backend.exchanges.okx as okx_mod
-from astra_backend.exchanges.okx import OKXAdapter, interpret_position_mode
+from astra_backend.exchanges.okx import OKXAdapter, filter_xperp_instruments, interpret_position_mode
 
 
 class InterpretPositionModeTest(unittest.TestCase):
@@ -68,6 +68,58 @@ class DetectPositionModeTest(unittest.TestCase):
                  and ((isinstance(n.func, ast.Attribute) and n.func.attr in guessed)
                       or (isinstance(n.func, ast.Name) and n.func.id in guessed))]
         self.assertEqual(found, [], "本系统绝不自动切换用户账户模式")
+
+
+class XPerpProductTest(unittest.TestCase):
+    def test_product_profile_isolated_from_swap(self):
+        from scripts.okx_runtime import selected_environment
+        swap = selected_environment({"ASTRA_OKX_ENV": "demo"})
+        xperp = selected_environment({
+            "ASTRA_OKX_ENV": "live",
+            "ASTRA_OKX_PRODUCT": "xperp",
+            "ASTRA_XPERP_SETTLEMENT_CCY": "USDC",
+        })
+        self.assertEqual((swap.product_profile.inst_type, swap.product_profile.settlement_currency),
+                         ("SWAP", "USDT"))
+        self.assertEqual((xperp.product_profile.inst_type, xperp.product_profile.rule_type,
+                          xperp.product_profile.settlement_currency),
+                         ("FUTURES", "xperp", "USDC"))
+        self.assertEqual(swap.base_url, "https://www.okx.com")
+        self.assertEqual(xperp.base_url, "https://eea.okx.com")
+        self.assertNotEqual(swap.identity, xperp.identity)
+
+    def test_xperp_filter_rejects_normal_futures_wrong_currency_and_expiryless_rows(self):
+        rows = [
+            {"instType": "FUTURES", "ruleType": "xperp", "state": "live", "settleCcy": "USDC",
+             "instId": "BTC-USD_UM_XPERP-040431", "expTime": "1901232000000"},
+            {"instType": "FUTURES", "ruleType": "normal", "state": "live", "settleCcy": "USDC",
+             "instId": "BTC-USDC-260101", "expTime": "1767225600000"},
+            {"instType": "FUTURES", "ruleType": "xperp", "state": "live", "settleCcy": "USDG",
+             "instId": "ETH-USD_UM_XPERP-040431", "expTime": "1901232000000"},
+            {"instType": "FUTURES", "ruleType": "xperp", "state": "live", "settleCcy": "USDC",
+             "instId": "SOL-USD_UM_XPERP-040431", "expTime": ""},
+        ]
+        found = filter_xperp_instruments(rows, "USDC")
+        self.assertEqual([row["instId"] for row in found], ["BTC-USD_UM_XPERP-040431"])
+
+    def test_invalid_settlement_currency_is_rejected(self):
+        from scripts.okx_runtime import selected_environment
+        with self.assertRaises(ValueError):
+            selected_environment({"ASTRA_OKX_PRODUCT": "xperp", "ASTRA_XPERP_SETTLEMENT_CCY": "USDT"})
+
+    def test_unknown_product_is_rejected_instead_of_falling_back_to_swap(self):
+        from scripts.okx_runtime import selected_environment
+        with self.assertRaises(ValueError):
+            selected_environment({"ASTRA_OKX_PRODUCT": "spot"})
+
+    def test_product_specific_api_hosts_are_enforced(self):
+        from scripts.okx_runtime import selected_environment
+        with self.assertRaises(ValueError):
+            selected_environment({"ASTRA_OKX_PRODUCT": "xperp",
+                                  "OKX_BASE_URL": "https://www.okx.com"})
+        with self.assertRaises(ValueError):
+            selected_environment({"ASTRA_OKX_PRODUCT": "swap",
+                                  "OKX_BASE_URL": "https://eea.okx.com"})
 
 
 class OkxEnvTest(unittest.TestCase):

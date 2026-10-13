@@ -1,5 +1,5 @@
 export const enAbout = {
-  title: 'About AstraQuant',
+  title: 'About Quant Agent EU',
   desc: 'Version, licence and source repository',
   arch: {
     title: 'Architecture',

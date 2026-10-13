@@ -78,6 +78,12 @@ class GetFailoverTest(_Base):
         self.assertEqual(self.ad._get("/api/v5/x"), ["no-code"],
                          "回包无 code 字段 ⇒ 按成功处理（默认 0）")
 
+    def test_xperp_public_queries_use_the_eea_host(self):
+        self.ad = OKXPublicAdapter(product="xperp", settlement_currency="USD")
+        self._open({"code": "0", "data": []})
+        self.assertEqual(self.ad.fetch_xperp_instruments("USD"), [])
+        self.assertTrue(self.urls[0].startswith("https://eea.okx.com/"))
+
 
 class ScalarParseTest(_Base):
     def test_funding_rate_paths(self):

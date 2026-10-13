@@ -149,11 +149,11 @@ console.log('isModelMissing（审计 P1-4b）:');
 // ------------------------------------------------------------ 展示名
 console.log('consensusModeName / roleDisplayName / roleTitleOf:');
 {
-  eq('standard → 标准提案模式',
-     M.consensusModeName('standard', 'FALLBACK'), '标准提案模式');
-  eq('cross_examination', M.consensusModeName('cross_examination', 'FB'), '交叉质询模式');
-  eq('debate', M.consensusModeName('debate', 'FB'), '对抗辩论模式');
-  eq('未知模式 → 回落', M.consensusModeName('nope', '标准提案模式'), '标准提案模式');
+  eq('standard → Standard proposal',
+     M.consensusModeName('standard', 'FALLBACK'), 'Standard proposal');
+  eq('cross_examination', M.consensusModeName('cross_examination', 'FB'), 'Cross-examination');
+  eq('debate', M.consensusModeName('debate', 'FB'), 'Adversarial debate');
+  eq('未知模式 → 回落', M.consensusModeName('nope', 'Standard proposal'), 'Standard proposal');
   eq('空串 → 回落', M.consensusModeName('', 'FB'), 'FB');
   eq('undefined → 回落', M.consensusModeName(undefined, 'FB'), 'FB');
 

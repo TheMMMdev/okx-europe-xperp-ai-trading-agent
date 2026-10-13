@@ -328,7 +328,7 @@ class FacadeWiringTest(unittest.TestCase):
                         self.assertNotIn("calculus_engine", a.name)
 
     def test_dual_import_works_under_both_path_layouts(self):
-        """⚠️ `scripts/` 不是包，且调用方不保证 repo 根在 sys.path。
+        """⚠️ 调用方不保证 repo 根在 sys.path。
 
         用子进程实测两种布局都能 `from calculus_engine import calculate_calculus`。
         """

@@ -87,6 +87,8 @@ class AdminAuthStore:
         return connection
 
     def has_users(self) -> bool:
+        if not self.path.exists():
+            return False
         with self.connect() as connection:
             return bool(connection.execute("SELECT 1 FROM admin_users LIMIT 1").fetchone())
 

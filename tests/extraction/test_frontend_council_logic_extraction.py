@@ -201,7 +201,7 @@ class DuplicationRemovedTest(unittest.TestCase):
                       "模式展示文案必须走 locale 键路径")
         self.assertNotIn("mode.name }}", page,
                          "模式卡不得再直接渲染常量里的 name")
-        self.assertIn("name: '标准提案模式'", logic_src,
+        self.assertIn("name: 'Standard proposal'", logic_src,
                       "逻辑模块里的模式名应保持不变（作为回落实参）")
         zh_council = (ROOT / "frontend" / "src" / "locales" / "zh" / "admin"
                       / "council.ts").read_text(encoding="utf-8")

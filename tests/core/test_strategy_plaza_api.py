@@ -155,14 +155,14 @@ class StrategyPlazaApiTest(unittest.TestCase):
                 "/api/v1/admin/plaza/settings",
                 json={
                     "enabled": True,
-                    "nickname": "0xEthanUpdated",
+                    "nickname": "QuantUpdated",
                     "show_balance": True,
                 },
             )
             self.assertEqual(update_res.status_code, 200)
             up_data = update_res.json()
             self.assertTrue(up_data["ok"])
-            self.assertEqual(up_data["settings"]["nickname"], "0xEthanUpdated")
+            self.assertEqual(up_data["settings"]["nickname"], "QuantUpdated")
             self.assertTrue(up_data["settings"]["enabled"])
 
 

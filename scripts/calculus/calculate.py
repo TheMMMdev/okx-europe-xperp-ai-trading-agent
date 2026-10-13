@@ -16,7 +16,7 @@ partially initialized module`）。
 
 ## 导入方式
 
-`scripts/` 不是包，真实调用方以裸名导入（`from calculus_engine import ...`）。
+真实调用方以裸名导入（`from calculus_engine import ...`）。
 本模块用**双模导入**拿原语，已实测三种 `sys.path` 布局均可解析：
 详见 `scripts/calculus/primitives.py` 的模块文档。
 

@@ -1,4 +1,4 @@
-"""Modular Execution Engine and Quantitative Pipeline for AstraQuant.
+"""Modular Execution Engine and Quantitative Pipeline for Quant Agent EU.
 
 ## 模块清单
 

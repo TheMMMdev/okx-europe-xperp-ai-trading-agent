@@ -1,7 +1,7 @@
 """Causal Calculus, Definite Integrals & Probability Theory Engine for Quantitative Trading.
 
 This module provides the core mathematical, continuous physical state, definite integration,
-and stochastic probabilistic foundation for AstraQuant.
+and stochastic probabilistic foundation for Quant Agent EU.
 
 All functions are strictly causal: chronological sequences with newest observation last.
 No lookahead bias. Closed candle data is enforced.
@@ -28,8 +28,8 @@ from typing import Any, Dict, Iterable, List, Sequence
 #   calculus/calculate.py   定积分 / 概率论 / 因果微积分 / 多周期聚合
 #   calculus_engine.py      ← 本文件，纯再导出
 #
-# ⚠️ `scripts/` 不是 Python 包，调用方以裸名导入且不保证 repo 根在 sys.path，
-# 故用 try/except 双模导入（已实测三种 sys.path 布局均可解析）。
+# ⚠️ 调用方以裸名导入且不保证 repo 根在 sys.path，故用 try/except
+# 双模导入（已实测三种 sys.path 布局均可解析）。
 # =============================================================================
 try:  # repo 根在 sys.path
     from scripts.calculus.primitives import (  # noqa: E402,F401

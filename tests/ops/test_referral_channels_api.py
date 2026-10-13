@@ -42,16 +42,16 @@ class InviteCodeTest(unittest.TestCase):
         """码放在 `?ref=` 时：路径末段是 `CPA`（无意义），必须以查询参数为准。"""
         self.assertEqual(
             system_router._invite_code(
-                "https://www.bsmkweb.cc/activity/referral-entry/CPA?ref=CPA_00N8UVQ2OG"),
-            "CPA_00N8UVQ2OG")
+                "https://referral.example.com/activity/referral-entry/CPA?ref=CPA_TESTCODE"),
+            "CPA_TESTCODE")
 
     def test_path_tail_is_used_when_no_query(self):
         self.assertEqual(
-            system_router._invite_code("https://www.mitxcqvwnhj.com/join/48039151"),
-            "48039151")
+            system_router._invite_code("https://invite.example.com/join/999888"),
+            "999888")
         self.assertEqual(
-            system_router._invite_code("https://www.gatesites.net/share/MCHDBKYF"),
-            "MCHDBKYF")
+            system_router._invite_code("https://referral.example.com/share/TESTCODE"),
+            "TESTCODE")
 
     def test_degenerate_inputs_yield_empty_not_garbage(self):
         """抽不到就空串（前端据此只显示链接），**绝不编造**一个码出来。"""

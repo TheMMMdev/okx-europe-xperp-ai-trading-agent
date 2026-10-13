@@ -237,7 +237,7 @@ export const zhAdminSecurity = {
   plazaLiveOnlyAlert: '策略广场仅限真实实盘账户加入。当前为模拟盘（DEMO）模式，分享功能已被物理锁定。请在上方切换为实盘并产生真实平仓交易后再开启。',
   plazaEnableLabel: '将我的节点实盘战绩与策略公开至策略广场',
   plazaNicknameLabel: '公开展示昵称',
-  plazaNicknamePlaceholder: '例如：0xEthan',
+  plazaNicknamePlaceholder: '例如：QuantLab',
   plazaShowPerf: '公开战绩数据（收益率、胜率、回撤等核心指标）',
   plazaShowBalance: '公开账户绝对余额（默认关闭，仅展示收益百分比）',
   plazaShowModel: '公开驱动模型信息（展示模型型号与投委会结构）',

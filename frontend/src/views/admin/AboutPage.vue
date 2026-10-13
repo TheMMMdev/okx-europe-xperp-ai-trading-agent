@@ -44,6 +44,7 @@ import { Info, GitBranch, Download, RefreshCw, CheckCircle2, AlertTriangle,
   ShieldCheck, Terminal, Loader2, ArrowUpRight, Link2, ExternalLink } from 'lucide-vue-next';
 import BaseLoadingAnnounce from '../../components/base/BaseLoadingAnnounce.vue';
 import CopyButton from '../../components/base/CopyButton.vue';
+import { OFFICIAL_REPO } from '../../config/version';
 
 const { api } = useApi();
 
@@ -119,6 +120,8 @@ const channelRows = computed(() => {
     .filter((key) => ch[key])
     .map((key) => ({ key, ...ch[key] }));
 });
+
+const repoUrl = computed(() => String(about.value?.repository?.url || OFFICIAL_REPO || '').trim());
 
 /** 版本状态带（4 项事实，全部取自 about.product / runtime / update） */
 const bandFacts = computed(() => {
@@ -243,7 +246,8 @@ const bandFacts = computed(() => {
 
             <footer class="ab-block-foot">
               <a
-                href="https://github.com/0xethanq/astra-quant-agent"
+                v-if="repoUrl"
+                :href="repoUrl"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="btn btn-primary btn-sm"

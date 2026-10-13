@@ -1,4 +1,4 @@
-"""Unified Sandbox and Backtest Subsystem for AstraQuant."""
+"""Unified Sandbox and Backtest Subsystem for Quant Agent EU."""
 from __future__ import annotations
 
 from .adapter import SandboxExchangeAdapter

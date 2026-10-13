@@ -153,7 +153,7 @@ export const zhMatrix = {
       copy: '复制风控参数',
       /* 批 77：剪贴板文案此前硬编码中文（`【ASTRA 风控测算】` / `入场:` / `SL:` / `TP:`），
          英文界面下用户复制出来是一段中英混排。 */
-      copySummary: '【AstraQuant 风控测算】{sym} 入场:{entry} SL:{sl} TP:{tp} R:R={rr}:1',
+      copySummary: '【Quant Agent EU 风控测算】{sym} 入场:{entry} SL:{sl} TP:{tp} R:R={rr}:1',
     },
   },
 

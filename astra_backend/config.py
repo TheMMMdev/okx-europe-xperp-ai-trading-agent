@@ -36,6 +36,9 @@ class Settings:
     port: int = 8080
     okx_base_url: str = "https://www.okx.com"
     okx_environment: str = "demo"
+    okx_product: str = "swap"
+    okx_inst_type: str = "SWAP"
+    okx_settlement_currency: str = "USDT"
     okx_api_key: str = ""
     okx_secret_key: str = ""
     okx_passphrase: str = ""
@@ -52,17 +55,11 @@ class Settings:
     admin_token: str = ""
     manual_close_enabled: bool = False
     order_mode: str = "market"
-    #: ⚠️ 上报/展示用，**不是发单时的权威来源** —— 真正挂到订单上的 tag
-    #: 取自 `scripts/okx_rest.py::effective_broker_tag()`（同一环境变量 + 同一个默认值）。
-    #: 改这里的字面量不会影响发单；展示侧请调那个函数，免得显示值与实发值漂移。
-    # ⚠️ 这里**只是上报用的空壳**，不放取值：经纪商 code 的权威来源是
-    # `scripts/okx_rest.py::DEFAULT_OKX_BROKER_TAG`（真正发单时用它）。此前这里
-    # 抄了一份字面量，是同一对值的又一副本 —— 值抄错/改了一处不生效，正是漂移温床。
-    # 全仓已确认**无任何代码读本字段**（仅定义），故保持为空即不会误导。
+    #: Optional disclosed OKX broker attribution. Empty by default; operators must obtain
+    #: an authorized code from OKX and disclose compensation before enabling it.
     okx_broker_tag: str = ""
-    #: 注册/返佣通道的**展示**用地址（后台「关于」页渲染成可复制入口）。
-    #: 可用同名环境变量覆盖，便于分发副本时替换成自己的通道。
-    okx_invite_url: str = "https://www.mitxcqvwnhj.com/join/48039151"
+    #: Optional public registration/referral URL shown on the About page.
+    okx_invite_url: str = ""
 
 
 def refresh_settings() -> Settings:
@@ -74,6 +71,9 @@ def refresh_settings() -> Settings:
     selected = selected_environment()
     settings.okx_base_url = selected.base_url
     settings.okx_environment = selected.mode
+    settings.okx_product = selected.product_profile.product
+    settings.okx_inst_type = selected.product_profile.inst_type
+    settings.okx_settlement_currency = selected.product_profile.settlement_currency
     settings.okx_api_key = selected.api_key
     settings.okx_secret_key = selected.secret_key
     settings.okx_passphrase = selected.passphrase
@@ -95,8 +95,9 @@ def refresh_settings() -> Settings:
     settings.admin_token = os.getenv("ASTRA_ADMIN_TOKEN", "")
     settings.manual_close_enabled = os.getenv("ASTRA_MANUAL_CLOSE_ENABLED", "0") == "1"
     settings.order_mode = os.getenv("ASTRA_ORDER_MODE", "market").strip().lower() or "market"
-    settings.okx_broker_tag = "6e2191f027c6SUDE"
-    settings.okx_invite_url = os.getenv("OKX_INVITE_URL", "https://www.mitxcqvwnhj.com/join/48039151")
+    from scripts.okx_rest import effective_broker_tag
+    settings.okx_broker_tag = effective_broker_tag()
+    settings.okx_invite_url = os.getenv("OKX_INVITE_URL", "")
     return settings
 
 

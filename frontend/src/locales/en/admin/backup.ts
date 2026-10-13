@@ -9,7 +9,7 @@ export const enAdminBackup = {
   enabledOn: "Daily automatic backup enabled",
   enabledOff: "Disabled",
   secContent: "1. Backup scope",
-  scopeValue: "AstraQuant system, strategies, configuration and runtime data",
+  scopeValue: "Quant Agent EU system, strategies, configuration and runtime data",
   secLocation: "2. Storage location",
   destLocal: "Local rolling archives",
   destS3: "S3-compatible storage",

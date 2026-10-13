@@ -174,6 +174,17 @@ class ReconcileTest(unittest.TestCase):
         self.assertEqual(kept, {"o1"})
         self.assertEqual(okx.cancelled, [])
 
+    def test_xperp_tracker_attribution_accepts_product_and_legacy_keys(self):
+        order = {"instId": "ETH-USD_UM_XPERP-310404", "ordId": "o1", "side": "buy", "state": "live"}
+        for key in ("xperp|ETH-USD_UM_XPERP-310404|long",
+                    "ETH-USD_UM_XPERP-310404_long"):
+            with self.subTest(key=key):
+                okx = _Okx()
+                ok, kept = self._run(pending=[order], okx=okx, trackers={key: {}})
+                self.assertTrue(ok)
+                self.assertEqual(kept, {"o1"})
+                self.assertEqual(okx.cancelled, [])
+
     def test_side_mismatch_is_cancelled(self):
         order = {"instId": "BTC-USDT-SWAP", "ordId": "o1", "side": "sell", "state": "live"}
         okx = _Okx()

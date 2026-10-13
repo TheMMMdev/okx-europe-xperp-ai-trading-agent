@@ -156,9 +156,8 @@ test('useI18n 必须可在组件外调用（store / api 层依赖这一点）', 
   const t = readFileSync(path.join(SRC, 'composables/useI18n.ts'), 'utf8');
   assert.ok(!/\binject\(/.test(t), 'useI18n 用了 inject —— 组件外调用会失败');
   assert.ok(!/getCurrentInstance/.test(t), 'useI18n 依赖组件实例 —— store / api 层无法使用');
-  // locale 导入必须是显式 /index：目录导入只有 Vite 认，node 测试的 loader 会解析失败
-  assert.match(t, /from '\.\.\/locales\/zh\/index'/, 'useI18n 的 zh 词条导入应为显式 /index');
-  assert.match(t, /from '\.\.\/locales\/en\/index'/, 'useI18n 的 en 词条导入应为显式 /index');
+  assert.doesNotMatch(t, /locales\/zh/, 'English-only product must not import the Chinese locale');
+  assert.match(t, /from '\.\.\/locales\/en\/index'/, 'useI18n English import should use explicit /index');
 });
 
 test('闸自检：识别用户可见中文，且不误伤数据匹配与正则', () => {

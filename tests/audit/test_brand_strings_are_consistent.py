@@ -1,4 +1,4 @@
-"""品牌与命名空间门禁：**对外面必须叫 AstraQuant，内部命名空间必须叫 astra。**
+"""品牌与命名空间门禁：**对外面必须叫 Quant Agent EU，内部命名空间必须叫 astra。**
 
 ## 这条门禁的来历（两次事故）
 
@@ -32,26 +32,17 @@
 > 为什么这条比"禁止 r20"更值钱：单说"禁止"会把有意的兼容也一起判红，
 > 于是下一个人只能去放宽门禁；逐条登记理由则让**每一次新增例外都必须解释**。
 
-### 判据三：站点 URL 必须单一来源、多处同源
-`https://www.astraquant.tech` 是规范形态（**带 www**，与 DNS 实际解析一致；
-裸域 `astraquant.tech` 在 2026-09-27 实测**无 A 记录**、不可达）。
-它必须在这五处完全一致：
+### 判据三：公开站点与仓库默认不得指向上游所有者
+This independent fork must not silently send users to the upstream author's site,
+repository, community accounts, canonical URL, or JSON-LD identity. Public links are
+empty until the operator configures `ASTRA_APP_SITE` / `ASTRA_APP_REPO` or the
+corresponding frontend constants before building.
 
-1. `astra_backend/version.py::APP_SITE` —— 后端单一来源
-2. `frontend/src/config/version.ts::OFFICIAL_SITE`
-3. `frontend/index.html` 的 `rel="canonical"`
-4. 同文件的 `og:url` 与 `twitter:url`
-5. 同文件 JSON-LD 的 `@id` 前缀
-
-**为什么值得钉**：canonical 与 og:url 不一致时，搜索引擎会自己挑一个 ——
-而历史上挑中的那个正是**旧域名**。这就是事故一的真实形态。
-
-顺带钉住：`astra_backend/routers/dashboard.py` 里**不得再写死域名**（必须走 `APP_SITE`），
-以及仓库 URL 不得回退到旧仓库名 `r20-quantum-trader`。
+Runtime `/robots.txt` and `/sitemap.xml` may still derive an origin from the active
+request or `APP_SITE`; static tracked metadata must remain operator-neutral.
 """
 from __future__ import annotations
 
-import json
 import re
 import subprocess
 import unittest
@@ -150,9 +141,6 @@ LEGACY_ALLOWED: "dict[str, str]" = {
     "README.md":
         "「Brand & codename」一节必须写明**哪些历史形态是有意保留的**（含旧域名与旧魔数），"
         "否则下一个人会再来一次「改名不彻底」。",
-    "README.zh-CN.md":
-        "中文版「品牌与内部代号」一节必须写明哪些历史形态（旧域名、旧归档魔数、旧标记）"
-        "是有意保留的 —— 否则下一个人会再来一次「改名不彻底」。",
     "docs/images/v751_features_summary.png":
         "历史功能截图（二进制）。它记录的是**当时**的界面，改写截图等于篡改历史记录；"
         "`docs/images/` 按快照对待。",
@@ -173,9 +161,11 @@ BANNED_ALLOWED: "dict[str, str]" = {
         "否则下次变更的人无法判断这次哈希更新是否合理。",
 }
 
-#: 规范站点与仓库（判据三的期望值）。
-EXPECTED_SITE = "https://www.astraquant.tech"
-EXPECTED_REPO = "https://github.com/0xethanq/astra-quant-agent"
+#: The independent distribution intentionally ships no upstream site or repository link.
+EXPECTED_SITE = ""
+EXPECTED_REPO = ""
+UPSTREAM_SITE = "astraquant.tech"
+UPSTREAM_REPO = "github.com/0xethanq/astra-quant-agent"
 
 
 def _tracked_files() -> "list[str]":
@@ -302,69 +292,48 @@ class LegacyNamespaceIsContainedTest(unittest.TestCase):
 
 
 class SiteUrlIsSingleSourceTest(unittest.TestCase):
-    """判据三：规范站点 URL 必须单一来源、多处同源。"""
+    """Independent distributions ship neutral public metadata until configured."""
 
     def _py_app_site(self) -> str:
-        m = re.search(r'^APP_SITE\s*=\s*"([^"]+)"', _read("astra_backend/version.py"), re.M)
+        m = re.search(r'^APP_SITE\s*=\s*"([^"]*)"', _read("astra_backend/version.py"), re.M)
         self.assertIsNotNone(m, "astra_backend/version.py 缺少 APP_SITE 常量")
         return m.group(1)
 
     def _ts_official_site(self) -> str:
-        m = re.search(r"OFFICIAL_SITE\s*=\s*'([^']+)'",
+        m = re.search(r"OFFICIAL_SITE\s*=\s*'([^']*)'",
                       _read("frontend/src/config/version.ts"))
         self.assertIsNotNone(m, "frontend/src/config/version.ts 缺少 OFFICIAL_SITE 常量")
         return m.group(1)
 
     def test_python_and_typescript_brand_sources_agree(self):
         self.assertEqual(self._py_app_site(), EXPECTED_SITE,
-                         "后端 APP_SITE 不是规范形态（注意：**带 www**；裸域无 A 记录）")
+                         "backend APP_SITE must default to an empty operator-configurable value")
         self.assertEqual(self._ts_official_site(), EXPECTED_SITE,
-                         "前端 OFFICIAL_SITE 不是规范形态（注意：**带 www**）")
+                         "frontend OFFICIAL_SITE must default to an empty operator-configurable value")
 
-    def test_index_html_seo_metadata_is_same_origin(self):
+    def test_index_html_seo_metadata_is_operator_neutral(self):
         html = _read("frontend/index.html")
         self.assertTrue(html, "frontend/index.html 读不到")
-        got = {
-            "rel=canonical": re.search(r'rel="canonical" href="([^"]+)"', html),
-            "og:url": re.search(r'property="og:url" content="([^"]+)"', html),
-            "twitter:url": re.search(r'name="twitter:url" content="([^"]+)"', html),
-        }
-        for label, m in got.items():
-            self.assertIsNotNone(m, f"index.html 缺少 {label}（会被搜索引擎当成无主页面）")
-        origins = {m.group(1).rstrip("/") for m in got.values()}
-        self.assertEqual(len(origins), 1,
-                         f"canonical / og:url / twitter:url 不同源：{sorted(origins)} "
-                         "⇒ 搜索引擎会自己挑一个，历史教训是它挑中了旧域名")
-        self.assertEqual(origins.pop(), EXPECTED_SITE, "SEO 元数据指向的不是规范站点")
+        self.assertNotIn(UPSTREAM_SITE, html)
+        self.assertNotIn(UPSTREAM_REPO, html)
+        for marker in ('rel="canonical"', 'property="og:url"', 'name="twitter:url"'):
+            self.assertNotIn(marker, html,
+                             "public metadata must not claim an unconfigured canonical origin")
 
-    def test_jsonld_ids_point_at_the_canonical_site(self):
+    def test_jsonld_is_omitted_until_a_site_is_configured(self):
         blocks = re.findall(r'<script type="application/ld\+json">(.*?)</script>',
                             _read("frontend/index.html"), re.S)
-        self.assertEqual(len(blocks), 1, "index.html 应恰好有一段 JSON-LD")
-        graph = json.loads(blocks[0])["@graph"]
-        self.assertTrue(graph, "JSON-LD @graph 为空")
-        for node in graph:
-            self.assertTrue(node.get("@id", "").startswith(EXPECTED_SITE),
-                            f"JSON-LD @id 不在规范站点下：{node.get('@id')!r}")
-            self.assertTrue(str(node.get("url", "")).startswith(EXPECTED_SITE),
-                            f"JSON-LD url 不在规范站点下：{node.get('url')!r}")
+        self.assertEqual(blocks, [], "JSON-LD must not advertise an unconfigured upstream origin")
 
-    def test_robots_and_sitemap_use_the_canonical_origin(self):
-        """⚠️ 只判**站点自身的 URL**：sitemap 的 XML 命名空间（w3.org / sitemaps.org）
-        是协议要求的固定常量，把它们算进来只会制造噪音。"""
+    def test_robots_has_no_unconfigured_origin_and_static_sitemap_is_omitted(self):
         robots = _read("frontend/public/robots.txt")
         self.assertTrue(robots, "frontend/public/robots.txt 读不到")
-        robots_urls = re.findall(r"^(?:Host|Sitemap):\s*(\S+)\s*$", robots, re.M)
-        self.assertTrue(robots_urls, "robots.txt 里没有 Host/Sitemap 行 ⇒ 判据失效")
-        bad = sorted({u for u in robots_urls if not u.startswith(EXPECTED_SITE)})
-        self.assertEqual(bad, [], f"robots.txt 指向了非规范站点：{bad}")
-
-        sitemap = _read("frontend/public/sitemap.xml")
-        self.assertTrue(sitemap, "frontend/public/sitemap.xml 读不到")
-        locs = re.findall(r"<loc>([^<]+)</loc>", sitemap)
-        self.assertTrue(locs, "sitemap.xml 里没有 <loc> ⇒ 判据失效")
-        bad_loc = sorted({u for u in locs if not u.startswith(EXPECTED_SITE)})
-        self.assertEqual(bad_loc, [], f"sitemap.xml 的 <loc> 指向了非规范站点：{bad_loc}")
+        self.assertNotIn(UPSTREAM_SITE, robots)
+        self.assertNotRegex(robots, r"^(?:Host|Sitemap):\s*\S+\s*$",
+                            "robots.txt must not claim an unconfigured canonical origin")
+        files = set(_tracked_files())
+        self.assertNotIn("frontend/public/sitemap.xml", files,
+                         "a static sitemap requires an absolute configured site and must not ship")
 
     def test_runtime_seo_endpoints_have_no_hardcoded_domain(self):
         """运行期兜底（`/robots.txt` `/sitemap.xml`）必须走单一来源，不得再写死域名。"""
@@ -376,17 +345,18 @@ class SiteUrlIsSingleSourceTest(unittest.TestCase):
             self.assertNotIn(hard, src,
                              f"routers/dashboard.py 又写死了域名 {hard!r} —— 请改用 APP_SITE")
 
-    def test_repository_url_is_the_renamed_repo(self):
-        """⚠️ 只判**仓库 URL**形态。裸串 `r20-quantum-trader` 仍会合法出现 ——
-        它是有意保留的部署路径 / Grafana UID（见 README「品牌与内部代号」），
-        一刀切会让那条有意为之的说明反而过不了门。"""
+    def test_repository_url_defaults_are_neutral(self):
         stale_url = "github.com/555cute/r20-quantum-trader"
         for rel in ("README.md", "README.zh-CN.md", "frontend/src/config/version.ts",
                     "astra_backend/routers/system.py", "frontend/src/views/docs/DocsView.vue"):
             self.assertNotIn(stale_url, _read(rel),
                              f"{rel} 里还有旧仓库 URL（改名后是 404 链接）")
-        self.assertIn(EXPECTED_REPO, _read("frontend/src/config/version.ts"))
-        self.assertIn(EXPECTED_REPO, _read("astra_backend/routers/system.py"))
+        self.assertNotIn(UPSTREAM_REPO, _read("frontend/src/config/version.ts"))
+        self.assertNotIn(UPSTREAM_REPO, _read("astra_backend/version.py"))
+        self.assertIn('OFFICIAL_REPO = \'\'', _read("frontend/src/config/version.ts"))
+        self.assertIn('APP_REPO = ""', _read("astra_backend/version.py"))
+        self.assertIn("from astra_backend.version import __version__, APP_NAME, APP_REPO, get_version",
+                      _read("astra_backend/routers/system.py"))
 
 
 if __name__ == "__main__":

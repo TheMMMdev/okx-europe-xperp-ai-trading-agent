@@ -1,20 +1,43 @@
-"""Central Source of Truth for AstraQuant version and branding.
+"""Central source of truth for Quant Agent EU version and branding.
 
-对外品牌 = `AstraQuant`；内部代号 = `ASTRA`（包名 `astra_backend` / `astra_gateway`
-与 `ASTRA_*` 环境变量键**有意保留**，理由见 `README.md` 的「品牌与内部代号」一节）。
+Public distribution metadata is intentionally blank until the operator configures
+`ASTRA_APP_SITE` / `ASTRA_APP_REPO`; the historical `ASTRA_*` internal namespace is
+kept for compatibility with data stores and configuration keys.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
-__version__ = "8.5.0"
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _env_value(name: str) -> str:
+    value = os.getenv(name)
+    if value:
+        return value.strip()
+    env_path = ROOT / ".env"
+    try:
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or "=" not in stripped:
+                continue
+            key, raw = stripped.split("=", 1)
+            if key.strip() == name:
+                return raw.strip().strip('"').strip("'")
+    except OSError:
+        pass
+    return ""
+
+
+__version__ = "8.5.0-eu.1"
 APP_VERSION = f"v{__version__}"
-APP_NAME = "AstraQuant"
-APP_NAME_EN = "AstraQuant"
-#: 官方站点（**带 www**，与 DNS 实际解析一致；页面内的 canonical / og:url 同源）。
-APP_SITE = "https://www.astraquant.tech"
-#: 官方仓库。
-APP_REPO = "https://github.com/0xethanq/astra-quant-agent"
+APP_NAME = "Quant Agent EU"
+APP_NAME_EN = "Quant Agent EU"
+APP_SITE = ""
+APP_REPO = ""
+APP_SITE = (_env_value("ASTRA_APP_SITE") or APP_SITE).rstrip("/")
+APP_REPO = _env_value("ASTRA_APP_REPO") or APP_REPO
 
 
 def get_version() -> str:

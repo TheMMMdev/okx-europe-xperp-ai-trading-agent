@@ -107,7 +107,7 @@ def _carries_unique_slot(stored: str, canonical: str) -> bool:
 
     | 基座分节 | 存档携带的插槽 | 说明版长度差 |
     |---|---|---|
-    | AstraQuant 启发式实战认知与长期记忆 | `{{trading_memory}}` | 92 → 105 |
+    | Quant Agent EU 启发式实战认知与长期记忆 | `{{trading_memory}}` | 92 → 105 |
     | 全网实时重大快讯与宏观情报 | `{{news_intelligence}}` | 85 → 82 |
     | 账户当前持仓与风险敞口全景 | `{{account_positions}}` | 85 → 93 |
     | 在途未成交限价挂单 | `{{pending_orders}}` | 101 → 112 |

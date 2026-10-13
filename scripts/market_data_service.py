@@ -23,6 +23,17 @@ OKX_PUBLIC_HOSTS = [
     "https://www.okx.com",
     "https://aws.okx.com",
 ]
+OKX_EEA_PUBLIC_HOSTS = ["https://eea.okx.com"]
+
+
+def _public_hosts() -> list[str]:
+    try:
+        from scripts.okx_runtime import current_environment
+        if current_environment().product_profile.product == "xperp":
+            return OKX_EEA_PUBLIC_HOSTS
+    except Exception:
+        pass
+    return OKX_PUBLIC_HOSTS
 
 # 行情取数可观测性（第 137 刀）：失败计数 + 耗时/成功率。
 # ⚠️ 双拼写铁律：本模块既以顶层名 `market_data_service`（SCRIPTS_DIR 在 sys.path 上，
@@ -129,7 +140,7 @@ def _public_get(path: str, params: Optional[Dict[str, Any]] = None, timeout: flo
     """Try primary then fallback OKX public endpoints."""
     session = get_market_session()
     kind = _call_kind("get", path)
-    for base in OKX_PUBLIC_HOSTS:
+    for base in _public_hosts():
         url = f"{base}{path}"
         started = time.time()
         try:
@@ -158,7 +169,7 @@ def _public_post(path: str, payload: Dict[str, Any], timeout: float = 4.0) -> Op
     session = get_market_session()
     headers = {"Content-Type": "application/json"}
     kind = _call_kind("post", path)
-    for base in OKX_PUBLIC_HOSTS:
+    for base in _public_hosts():
         url = f"{base}{path}"
         started = time.time()
         try:
@@ -192,8 +203,11 @@ def fetch_ticker(inst_id: str, timeout: float = 3.5) -> Optional[Dict[str, Any]]
     return None
 
 
-def fetch_tickers_bulk(inst_type: str = "SWAP", timeout: float = 4.0) -> Dict[str, Dict[str, Any]]:
+def fetch_tickers_bulk(inst_type: str | None = None, timeout: float = 4.0) -> Dict[str, Dict[str, Any]]:
     """Fetch all instrument tickers in ONE single network request."""
+    if inst_type is None:
+        from scripts.okx_runtime import current_environment
+        inst_type = current_environment().product_profile.inst_type
     data = _public_get("/api/v5/market/tickers", params={"instType": inst_type}, timeout=timeout)
     if data and data.get("data"):
         return {item["instId"]: item for item in data["data"] if "instId" in item}

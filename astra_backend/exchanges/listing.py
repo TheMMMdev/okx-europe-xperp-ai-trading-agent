@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import time
+import urllib.parse
 import warnings
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
@@ -62,24 +63,28 @@ def _norm(contract_native: str) -> str:
     return str(contract_native or "").strip().upper()
 
 
-def _fetch_directory(venue: str, environment: str) -> Dict[str, Dict[str, str]]:
+def _fetch_directory(venue: str, environment: str, *, inst_type: str = "SWAP",
+                     rule_type: str = "", base_url: str = "") -> Dict[str, Dict[str, str]]:
     """拉取该 (venue, environment) 的公共合约目录。
 
     返回 {合约名(大写): {"state": ...}}。
     网络失败/超时/解析失败抛异常（调用方 fail-open）。
     """
     prof = env_profiles.get_profile(venue, environment)
-    base_url = env_profiles.resolve_base_url(venue, environment)
+    resolved_base_url = str(base_url or env_profiles.resolve_base_url(venue, environment)).rstrip("/")
 
     headers = {"User-Agent": _UA, "Accept": "application/json"}
     if venue != "okx":
         raise ExchangeCapabilityError(f"listing gate 未支持的 venue={venue!r}")
-    path = "/api/v5/public/instruments?instType=SWAP"
+    inst_type = str(inst_type or "SWAP").upper()
+    path = f"/api/v5/public/instruments?instType={urllib.parse.quote(inst_type)}"
+    if rule_type:
+        path += f"&ruleType={urllib.parse.quote(str(rule_type).lower())}"
     if prof.simulated_trading:
         # OKX demo = 同域 + 模拟盘头（env_profiles 结构位）
         headers["x-simulated-trading"] = "1"
 
-    req = Request(base_url + path, headers=headers, method="GET")
+    req = Request(resolved_base_url + path, headers=headers, method="GET")
     with urlopen(req, timeout=_TIMEOUT_SECONDS) as resp:
         payload = json.loads(resp.read().decode("utf-8"))
 
@@ -90,21 +95,32 @@ def _fetch_directory(venue: str, environment: str) -> Dict[str, Dict[str, str]]:
 
 
 def _get_directory(venue: str, environment: str,
-                   fetch_fn=None) -> Tuple[Dict[str, Dict[str, str]], str]:
+                   fetch_fn=None, *, inst_type: str = "SWAP",
+                   rule_type: str = "", base_url: str = "") -> Tuple[Dict[str, Dict[str, str]], str]:
     """带 TTL 缓存的目录获取；source ∈ {'cache','fresh'}。"""
-    key = (str(venue).lower(), str(environment).lower())
+    vkey = str(venue).lower()
+    ekey = str(environment).lower()
+    default_directory = str(inst_type or "SWAP").upper() == "SWAP" and not rule_type and not base_url
+    key = ((vkey, ekey) if default_directory else
+           (vkey, ekey, str(inst_type).upper(), str(rule_type).lower(), str(base_url).rstrip("/")))
     now = time.monotonic()
     hit = _CACHE.get(key)
     if hit is not None and (now - hit[0]) < TTL_SECONDS:
         return hit[1], "cache"
-    fetch = fetch_fn or _fetch_directory
-    directory = fetch(venue, environment)
+    if fetch_fn is not None:
+        directory = (fetch_fn(venue, environment) if default_directory else
+                     fetch_fn(venue, environment, inst_type=inst_type,
+                              rule_type=rule_type, base_url=base_url))
+    else:
+        directory = _fetch_directory(venue, environment, inst_type=inst_type,
+                                     rule_type=rule_type, base_url=base_url)
     _CACHE[key] = (now, directory)
     return directory, "fresh"
 
 
 def ensure_contract_listed(venue: str, environment: str,
-                           contract_native: str) -> ListingCheck:
+                           contract_native: str, *, inst_type: str = "SWAP",
+                           rule_type: str = "", base_url: str = "") -> ListingCheck:
     """环境维合约存在性对账（下单前调用；fail-open，不抛网络异常）。
 
     - 不存在 → ok=False（「合约已下架」/「沙盒未上市」按环境措辞）；
@@ -118,7 +134,11 @@ def ensure_contract_listed(venue: str, environment: str,
     native = _norm(contract_native)
 
     try:
-        directory, source = _get_directory(vkey, ekey)
+        if str(inst_type or "SWAP").upper() == "SWAP" and not rule_type and not base_url:
+            directory, source = _get_directory(vkey, ekey)
+        else:
+            directory, source = _get_directory(
+                vkey, ekey, inst_type=inst_type, rule_type=rule_type, base_url=base_url)
     except Exception as exc:  # fail-open：对账是增强不是风控闸门
         warnings.warn(f"[listing-gate] {vkey}/{ekey} 行情目录拉取失败，跳过对账: {exc}")
         return ListingCheck(ok=True, reason="行情目录不可用，跳过对账",
@@ -140,7 +160,8 @@ def ensure_contract_listed(venue: str, environment: str,
     return ListingCheck(ok=True, reason=None, checked_at=checked_at, source=source)
 
 
-def listing_snapshot(venue: str, environment: str) -> ListingSnapshot:
+def listing_snapshot(venue: str, environment: str, *, inst_type: str = "SWAP",
+                     rule_type: str = "", base_url: str = "") -> ListingSnapshot:
     """场所级目录快照（只读面，前端展示用；复用 TTL 缓存，零新增出网压力）。
 
     - 目录可用 → ok=True + listed_count（source='cache'/'fresh'）；
@@ -158,7 +179,11 @@ def listing_snapshot(venue: str, environment: str) -> ListingSnapshot:
                                checked_at=checked_at, source="unavailable",
                                listed_count=None)
     try:
-        directory, source = _get_directory(vkey, ekey)
+        if str(inst_type or "SWAP").upper() == "SWAP" and not rule_type and not base_url:
+            directory, source = _get_directory(vkey, ekey)
+        else:
+            directory, source = _get_directory(
+                vkey, ekey, inst_type=inst_type, rule_type=rule_type, base_url=base_url)
     except Exception as exc:  # fail-open：对账是增强不是风控闸门
         warnings.warn(f"[listing-gate] {vkey}/{ekey} 行情目录拉取失败，跳过对账: {exc}")
         return ListingSnapshot(ok=True, reason="行情目录不可用，跳过对账",

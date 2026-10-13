@@ -1,46 +1,106 @@
 <div align="center">
 
-[简体中文](README.zh-CN.md) · [**English**](README.md)
+# Quant Agent EU
 
-# AstraQuant
+### Independent OKX Europe X-Perp execution and AI-assisted trading fork
 
-### Autonomous OKX-Native Quant Trading Terminal & Multi-Agent Operating System
-
-[![Release](https://img.shields.io/badge/Release-v8.5.0--preview-00E599.svg?style=flat-square)](https://github.com/0xethanq/astra-quant-agent/releases)
-[![Website](https://img.shields.io/badge/Site-www.astraquant.tech-6E56CF.svg?style=flat-square)](https://www.astraquant.tech)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.11-3776AB.svg?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Vue 3](https://img.shields.io/badge/Vue-3.5%2B-4FC08D.svg?style=flat-square&logo=vuedotjs&logoColor=white)](https://vuejs.org/)
-[![Tests](https://img.shields.io/badge/Tests-9.5k%2B%20Passing-brightgreen.svg?style=flat-square)](tests/)
-[![Community](https://img.shields.io/badge/Community-LINUX%20DO-F97316.svg?style=flat-square&logo=linux&logoColor=white)](https://linux.do/)
+[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB.svg?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+![OKX Europe X-Perps](https://img.shields.io/badge/OKX%20Europe-X--Perps-111111.svg?style=flat-square)
+[![Execution](https://img.shields.io/badge/Live%20execution-disabled%20by%20default-orange.svg?style=flat-square)](#live-execution)
 
-**Named AI seats debate → CIO arbitrates → a physical Python risk pipeline vetoes → OKX receives maker limit orders with atomic conditional protection.**
+**AI agents may propose orders; deterministic Python risk gates retain final authority.**
 
-*Cognition belongs to the models; physical risk control belongs to the base layer. Zero black-box magic.*
-
-[Quick start](#-quick-start) · [Architecture](#-architecture) · [Design principles](#-design-principles) · [Scheduling](#-scheduling) · [Prompt system](#-prompt-system) · [Risk model](#-risk-model) · [Visual tour](#-visual-tour) · [Deploy](#-deploy) · [Code map](#-code-map)
+[Quick start](#quick-start) · [EEA support](#eea-x-perp-support) · [Security](#security) · [Risk](#risk-defaults) · [Compensation](#referral-and-broker-compensation) · [Limitations](#known-limitations)
 
 </div>
 
-> 🌟 **This project is officially launched with, and proudly endorses, the [LINUX DO (linux.do)](https://linux.do/) open-source technical community.**
+> [!IMPORTANT]
+> This is an independent derivative of the MIT-licensed AstraQuant project. It is not endorsed by OKX, does not guarantee profitability, and is not financial advice. Leveraged derivatives can lose the full allocated margin.
 
----
+> [!TIP]
+> **New to OKX Europe? [Create an account through the Quant Agent EU referral link](https://my.okx.com/nl/join/4QJU7QRA) to participate in the currently displayed welcome offer, which may advertise rewards worth up to US$400.** The actual offer, eligibility, required KYC/deposit/trading tasks, deadlines, reward type, and value are determined by OKX and may differ by country or change at any time. The project operator may receive referral compensation if you register through this link. Using it is optional and does not affect the software.
 
-## 🚀 Quick start
+## EEA X-Perp support
+
+This fork targets eligible, verified OKX Europe accounts. It uses the EEA private API at `https://eea.okx.com` and discovers contracts as `instType=FUTURES` with `ruleType=xperp`. It supports full expiry-suffixed IDs, USD-equivalent collateral, isolated margin, one-way/net and hedge position modes, attached exchange-side TP/SL, product-isolated reconciliation, expiry guards, and emergency flattening.
+
+Eligibility remains controlled by OKX and can require KYC, an appropriateness assessment, risk-disclosure acceptance, account-level approval, and supported collateral. The software never bypasses those controls.
+
+## Quick start
 
 ```bash
-git clone https://github.com/0xethanq/astra-quant-agent.git && cd astra-quant-agent
-./deploy/docker-start.sh     # Docker (recommended). Bare metal: ./deploy/install.sh && ./start.sh
+git clone <YOUR-GITHUB-REPOSITORY-URL>
+cd quant-agent-eu
+cp env.example .env
+# Prefer entering credentials in the encrypted admin interface after first start.
+docker compose up -d --build
 ```
+
+Open `http://127.0.0.1:8080`. The Docker port is bound to localhost by default.
 
 | Surface | URL | Access |
 |---|---|---|
-| **Trading Workstation** | `http://localhost:8080/trading` | Public |
-| **Admin Control Plane** | `http://localhost:8080/admin/login` | User `admin` |
-| **System Docs & OpenAPI** | `http://localhost:8080/docs` | Public |
+| Trading workstation | `http://127.0.0.1:8080/trading` | Local browser |
+| Admin control plane | `http://127.0.0.1:8080/admin/login` | Authenticated |
+| OpenAPI | `http://127.0.0.1:8080/docs` | Local browser |
 
-> 🛡️ **Safety first.** AstraQuant boots in **demo / paper mode** and will not touch live funds until you configure **both** LLM provider keys **and** OKX API keys, then flip the environment toggle on `/admin/security`. Until a complete key trio exists for the selected environment the system reports `NOT READY` and refuses all trading.
+Live X-Perp execution is physically disabled by default:
+
+```env
+ASTRA_OKX_ENV=demo
+ASTRA_OKX_PRODUCT=xperp
+ASTRA_XPERP_SETTLEMENT_CCY=USD
+ASTRA_XPERP_MARGIN_MODE=isolated
+ASTRA_XPERP_EXECUTION=0
+```
+
+Use demo credentials first. Switch only `ASTRA_OKX_ENV` to `live` after the EEA API key has read-and-trade permission, eligible collateral is in the trading account, and read-only diagnostics pass. Do not set `ASTRA_XPERP_EXECUTION=1` until instrument discovery, collateral checks, and a minimum-size lifecycle validation all pass.
+
+## Security
+
+- Create API keys with Read and Trade only. Never enable withdrawals.
+- Use IP restrictions where practical.
+- `.env`, encrypted stores, Fernet keys, databases, logs, ledgers, backups, fills, and order IDs are excluded from Git.
+- Prefer the encrypted admin credential store over plaintext `.env` secrets.
+- Plugins execute in-process and are not sandboxed. Install only reviewed plugins.
+- The dashboard binds to `127.0.0.1` in Docker; use an authenticated reverse proxy for remote access.
+- Run `python scripts/release_preflight.py` before every public release.
+
+## Live execution
+
+The default is read-only with `ASTRA_XPERP_EXECUTION=0`. Enabling execution is an operator action, not an installation step. A safe rollout is: read-only API check → instrument discovery → shadow decisions → minimum isolated lifecycle → monitored single-position pilot. The project contains `scripts/xperp_lifecycle_check.py`, which can place real orders and therefore requires an exact confirmation phrase.
+
+## Risk defaults
+
+The public template uses one position, 1× isolated leverage, 1% target risk, 2% daily-loss circuit breaker, minimum 2R structure, no pyramiding, no partial scale-out, high confidence gating, and limit entries. These are safety defaults, not performance claims. Contract minimums can cause orders to be skipped when percentage sizing cannot be represented safely.
+
+## Referral and broker compensation
+
+This distribution includes the operator's disclosed OKX Europe referral URL but no broker tag:
+
+```env
+OKX_INVITE_URL=https://my.okx.com/nl/join/4QJU7QRA
+OKX_BROKER_TAG=
+```
+
+`OKX_INVITE_URL` is an optional public registration link. The operator may receive referral compensation when an eligible user registers or completes qualifying activity through it. Any advertised reward—including an offer worth up to US$400—is conditional on the live offer shown by OKX, the user's country, KYC, required tasks, deadlines, and OKX's terms; it is not guaranteed by this project. `OKX_BROKER_TAG` remains blank and should be configured only after OKX assigns or authorizes a 1–16 character ASCII alphanumeric code. A referral link does not authorize order-flow attribution, and this software does not claim that user fees are reduced or transferred in full.
+
+To obtain a standard EEA referral link, sign in to OKX Europe and open **More → Referral** (or the approved affiliate flow under **More → Affiliates**), then copy your unique link into `OKX_INVITE_URL`. Order-flow attribution is separate: apply to OKX's Broker Program, wait for approval, retrieve the assigned broker code from the Broker Dashboard, and only then set `OKX_BROKER_TAG`. Do not invent a broker code; unauthorized or malformed values are rejected at startup/order assembly and may cause orders to fail.
+
+## Known limitations
+
+- No audited or statistically significant profitability record is included.
+- Live validation covered minimum-size ETH X-Perp long and short lifecycles, protection readback, close, cleanup, and ledger ingestion; it did not prove strategy alpha.
+- Partial fills, real TP/SL triggers, long-duration funding, daily settlement, process restart while holding, and final expiry settlement need broader live observation.
+- Private REST retry/backoff and clock-drift handling remain less mature than institutional execution stacks.
+- The default strategy is crypto-oriented; TradFi X-Perps are excluded from the generated pool.
+- Paid multi-agent LLM usage can cost more than a small account earns.
+- One-way/net mode and isolated margin are supported, but operators remain responsible for account settings and collateral.
+
+## Upstream attribution
+
+Derived from [0xethanq/astra-quant-agent](https://github.com/0xethanq/astra-quant-agent) under the MIT License. Preserve the repository `LICENSE` and upstream copyright notice when redistributing.
 
 ---
 
@@ -157,26 +217,26 @@ All cadences are declared in one place (`astra_gateway/scheduler.py`), so this t
 
 ## 💰 Risk model
 
-Every parameter scales with **account equity** — a 20 USDT demo and a 10,000 USDT desk run identical logic. Values below are the shipped *balanced* baseline and are the same constants the executor enforces (`scripts/risk_constants.py`):
+The public EEA template is intentionally conservative. Percentage sizing still rounds down to exchange contract lots, so small accounts may skip trades rather than exceed their risk budget.
 
-| Rule | Formula / value | 20 USDT demo | 4,000 USDT live |
-| :--- | :--- | ---: | ---: |
-| Risk per trade (1R) | `min(per-asset cap, equity × 4.5%)` | 0.90 USDT | 180 USDT |
-| Max margin per trade | `equity × 40%` | 8.00 USDT | 1,600 USDT |
-| Single-asset cumulative margin | `equity × 48%` | 9.60 USDT | 1,920 USDT |
-| Daily drawdown circuit breaker | `min(500 USDT, equity × 10%)` | 2.00 USDT | 400 USDT |
-| Leverage clamp band | `6x – 12x`, tightened per instrument | clamped | clamped |
-| Reward:risk floor / cap | `≥ 2.0`, `≤ 5.0` | — | — |
-| Stop-loss distance | `2.0 × ATR(1H)` | — | — |
-| Take-profit distance cap | `≤ 4.5 × ATR` | — | — |
-| Scale-out | `35%` of the base position at `2.0 × ATR` | — | — |
-| Time stop | `8 h` | — | — |
-| Post-stop cooldown (per instrument) | `15 min` | — | — |
-| Max same-direction positions | `5` | — | — |
-| Pyramiding | `≤ 2` adds, each `≥ 68%` confidence and `≥ 0.6%` in profit | — | — |
-| Minimum entry confidence | `68%` | — | — |
+| Rule | Public default |
+| :--- | ---: |
+| Concurrent positions | 1 |
+| Same-direction positions | 1 |
+| Risk target per trade | 1% of available eligible collateral |
+| Max margin per trade | 18% of available eligible collateral |
+| Single-asset cumulative margin | 18% |
+| Daily drawdown circuit breaker | 2% of equity, subject to absolute cap |
+| Leverage | 1× isolated |
+| Reward:risk floor / cap | 2.0 / 3.0 |
+| Minimum entry confidence | 85% |
+| Pyramiding | Disabled |
+| Partial scale-out | Disabled by default |
+| Post-stop cooldown | 120 minutes |
+| Contract expiry guard | 30 days |
+| Autonomous live execution | Disabled |
 
-> ⚙️ These are defaults, not dogma: every one of them is editable in the Risk Control Center and takes effect on the next cycle.
+These are safety defaults, not a claim of optimality or profitability. Review the actual values in `env.example` and `scripts/risk_constants.py` before deployment.
 
 ---
 
@@ -213,17 +273,17 @@ Both Docker containers run an in-container watchdog and expose health checks, be
 Documentation claims in this repository are backed by automated gates; passing them is part of the deliverable.
 
 ```bash
-# 1) Backend — full offline regression (structural gates, LLM contract, venue contract, UI)
-.venv/bin/pytest tests/ -q
+python scripts/release_preflight.py
+python -m unittest discover -s tests
 
-# 2) Frontend — type check, production bundle, component tests
 cd frontend
+npm ci
 npx vue-tsc --noEmit -p tsconfig.app.json
 npm run build
-node --test tests/*.test.mjs
+npm test
 ```
 
-> ⚠️ Always use `.venv/bin/python` and `.venv/bin/pytest` — this repository deliberately does **not** rely on a global Python.
+CI runs backend tests on Python 3.11 and 3.12, frontend checks on Node 22.15, the release preflight, and a Docker image build.
 
 ---
 
@@ -234,8 +294,8 @@ node --test tests/*.test.mjs
 Packages Python 3.11, compiles the Vue 3 bundle, and runs the web app plus the scheduler:
 
 ```bash
-git clone https://github.com/0xethanq/astra-quant-agent.git
-cd astra-quant-agent
+git clone <YOUR-GITHUB-REPOSITORY-URL>
+cd quant-agent-eu
 cp env.example .env && vim .env      # configure LLM + OKX credentials
 ./deploy/docker-start.sh             # == docker compose up -d --build
 
@@ -248,8 +308,8 @@ docker compose logs -f               # aggregated logs
 ### Option B Bare metal
 
 ```bash
-git clone https://github.com/0xethanq/astra-quant-agent.git
-cd astra-quant-agent
+git clone <YOUR-GITHUB-REPOSITORY-URL>
+cd quant-agent-eu
 sh deploy/install.sh                 # creates .venv and installs dependencies
 vim .env
 
@@ -291,10 +351,13 @@ Windows: `start.ps1`. Systemd units: `deploy/astra-quant.service`, `deploy/astra
 
 ---
 
-## 🏷 Brand and internal codename (read before renaming)
+## 🏷 Distribution name and internal namespace
 
-- **Public brand**: **AstraQuant** — <https://www.astraquant.tech>
+- **Distribution**: **Quant Agent EU**
+- **Upstream project**: **AstraQuant**
 - **Internal namespace**: **`astra`** (packages `astra_backend`, `astra_gateway`; config prefix `ASTRA_*`)
+
+`AstraQuant` remains in code, prompts, tests, and upstream-facing metadata for compatibility and attribution. Do not perform a global rename: several historical markers protect existing databases, backups, exchange order tags, and test baselines.
 
 ### Intentional legacy markers — do not rename
 
@@ -306,12 +369,9 @@ Three historical markers are retained to protect live production data and open p
 
 ---
 
-## 🤝 Community
+## 🤝 Upstream acknowledgement
 
-AstraQuant officially links to and endorses the **[LINUX DO (linux.do)](https://linux.do/)** open-source community.
-
-- 🐧 **Technical soil** — thanks to LINUX DO for discussion, strategy inspiration, and feedback.
-- 💬 **Join in** — multi-agent prompt engineering, risk parameters, live crypto quant execution.
+Thanks to the upstream AstraQuant contributors and the LINUX DO community for the original implementation, technical discussion, and feedback. This repository is an independent fork; references to upstream are attribution, not an endorsement of this distribution or its strategy results.
 
 ---
 

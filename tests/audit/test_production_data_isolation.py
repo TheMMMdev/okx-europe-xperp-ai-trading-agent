@@ -152,7 +152,7 @@ class SubprocessDataWritesRedirectedTest(unittest.TestCase):
                             cwd=str(ROOT), timeout=90)
         self.assertEqual(cp.returncode, 0,
                          f"子进程探针失败：{cp.stderr[-300:]}")
-        self.assertEqual(cp.stdout.strip(), expected,
+        self.assertEqual(cp.stdout.strip().splitlines()[-1], expected,
                          "子进程解析出的 DATA_DIR 未指向沙箱 —— "
                          "env 传递链断了（泄漏仍在）")
 

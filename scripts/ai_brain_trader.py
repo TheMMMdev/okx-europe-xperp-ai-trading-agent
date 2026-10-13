@@ -390,12 +390,12 @@ def fetch_single_instrument_package(item: Dict[str, Any]) -> Dict[str, Any]:
 #
 # 标题是**接口**：`data/prompt_library.json` 里那条 `source="base"` 的只读模块
 # 按标题与本常量对齐（`normalize_base_modules` 按标题认亲）。
-READONLY_OUTPUT_SCHEMA_TITLE = "严格 JSON 规范契约与完整输出骨架 (JSON Schema)"
-READONLY_OUTPUT_SCHEMA = """==== 【严格 JSON 规范契约与完整输出骨架 (JSON Schema)】 ====
-你必须直接输出一个严格合法的 JSON 对象，禁止输出任何 Markdown 代码围栏、前缀或额外文字。结构必须严格完全符合以下 JSON Schema 骨架：
+READONLY_OUTPUT_SCHEMA_TITLE = "Strict JSON contract and complete output schema (JSON Schema)"
+READONLY_OUTPUT_SCHEMA = """==== 【Strict JSON contract and complete output schema (JSON Schema)】 ====
+Return one strictly valid JSON object. Do not output Markdown fences, prefixes, or additional prose. The structure must match this schema exactly:
 
 {
-  "macro_assessment": "30字内全市场宏观流动性与大盘走势总结",
+  "macro_assessment": "Market-wide liquidity and trend summary in no more than 30 words",
   "position_management": [
     {
       "instId": "BTC-USDT-SWAP",
@@ -404,15 +404,15 @@ READONLY_OUTPUT_SCHEMA = """==== 【严格 JSON 规范契约与完整输出骨�
       "suggested_tp1_price": 0.0,
       "suggested_tp2_price": 0.0,
       "confidence": 85.0,
-      "reason": "30字内持仓调整原因与动能简述"
+      "reason": "Position adjustment and momentum rationale in no more than 30 words"
     }
   ],
   "pending_orders_management": [
     {
-      "ordId": "在途挂单ID",
+      "ordId": "pending-order-id",
       "instId": "BTC-USDT-SWAP",
       "action": "KEEP",
-      "reason": "30字内维持或撤单原因"
+      "reason": "Keep-or-cancel rationale in no more than 30 words"
     }
   ],
   "decisions": {
@@ -424,21 +424,21 @@ READONLY_OUTPUT_SCHEMA = """==== 【严格 JSON 规范契约与完整输出骨�
       "entry_price": 79500.0,
       "take_profit_price": 83000.0,
       "stop_loss_price": 77800.0,
-      "summary_reason": "顺势回踩支撑企稳限价做多",
-      "market_structure": "4H大势多头，1H均线回踩企稳",
-      "calculus_dynamics": "1H: v=+0.05, a=+0.20 动能转正",
-      "math_prob_rationale": "延续概率65%显著占优，R:R=2.5",
-      "volume_and_oi": "量能缩量企稳，主力净流入"
+      "summary_reason": "Limit long after a confirmed trend-aligned support retest",
+      "market_structure": "4H bullish structure with a confirmed 1H moving-average retest",
+      "calculus_dynamics": "1H: v=+0.05, a=+0.20; momentum turned positive",
+      "math_prob_rationale": "Continuation probability 65%; R:R=2.5",
+      "volume_and_oi": "Volume stabilized while informed flow turned positive"
     }
   }
 }
 
-▍字段审计说明：
-- position_management.action 只允许: "HOLD" | "CLOSE_MARKET" | "UPDATE_SL" | "UPDATE_TP"；触发峰值回撤超 35% 或 1H 负功率衰竭时果断输出 CLOSE_MARKET 止盈；action 为 UPDATE_SL 时 suggested_sl_price 填目标价格、否则必须填 0.0；action 为 UPDATE_TP 时 suggested_tp1_price/suggested_tp2_price 填目标止盈价（分批已发生时只填 tp2）、否则两者必须填 0.0；
-- pending_orders_management.action 只允许: "KEEP" | "CANCEL"；挂单已大幅偏离盘口或入场逻辑失效时必须 CANCEL；
-- decisions[标的].action 只允许: "BUY_LONG" | "SELL_SHORT" | "WAIT"；action 为 WAIT 时 entry_price/take_profit_price/stop_loss_price 填 0.0；
-- decisions 只包含有明确结论的标的，未涉及的标的不得出现；
-- 每个决策的 calculus_dynamics 与 math_prob_rationale 必须明确引用具体 1H v, a 与概率数值，严禁只写空泛定性词句！"""
+Field rules:
+- position_management.action must be "HOLD", "CLOSE_MARKET", "UPDATE_SL", or "UPDATE_TP". Use CLOSE_MARKET when peak profit drawdown exceeds 35% or 1H power turns materially negative. For UPDATE_SL, set suggested_sl_price to the target and otherwise use 0.0. For UPDATE_TP, set suggested_tp1_price and suggested_tp2_price to the targets; after a partial exit set only TP2. Otherwise both must be 0.0.
+- pending_orders_management.action must be "KEEP" or "CANCEL". Cancel orders that have materially drifted from the market or whose entry thesis is invalid.
+- decisions[instrument].action must be "BUY_LONG", "SELL_SHORT", or "WAIT". For WAIT, entry_price, take_profit_price, and stop_loss_price must all be 0.0.
+- Include only instruments with explicit conclusions in decisions.
+- Every decision must cite concrete 1H v, a, probability, and risk/reward values in calculus_dynamics and math_prob_rationale; vague qualitative claims are not acceptable."""
 
 # 兼容别名（既有引用/测试面按旧名解析；内容与上面**同一份**，不是第二份副本）。
 _SYSTEM_JSON_CONTRACT = READONLY_OUTPUT_SCHEMA

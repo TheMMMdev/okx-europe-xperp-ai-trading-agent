@@ -234,7 +234,7 @@ export const enAdminSecurity = {
   plazaLiveOnlyAlert: 'Strategy Plaza is strictly restricted to LIVE real accounts. Current node is in DEMO mode; sharing is physically locked. Please switch to LIVE above and accumulate live closed trades before enabling.',
   plazaEnableLabel: 'Publish my live performance & strategy to Strategy Plaza',
   plazaNicknameLabel: 'Public Display Nickname',
-  plazaNicknamePlaceholder: 'e.g. 0xEthan',
+  plazaNicknamePlaceholder: 'e.g. QuantLab',
   plazaShowPerf: 'Display performance metrics (ROI, Win Rate, Max Drawdown)',
   plazaShowBalance: 'Display absolute account balance (default hidden, displays ROI % only)',
   plazaShowModel: 'Display AI model information (model name & committee seats)',

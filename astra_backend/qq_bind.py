@@ -23,6 +23,8 @@ from typing import Any, Dict, Optional
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
+from astra_backend.version import APP_VERSION
+
 QQ_HOST = "q.qq.com"
 QQ_TOKEN_URL = "https://bots.qq.com/app/getAppAccessToken"
 QQ_API_BASE = "https://api.sgroup.qq.com"
@@ -75,7 +77,7 @@ def _get_qq_token(app_id: str, client_secret: str) -> tuple[bool, str, str]:
     req = urllib.request.Request(
         QQ_TOKEN_URL,
         data=json.dumps({"appId": app_id, "clientSecret": client_secret}).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": "ASTRA-Standalone/6.6.2"},
+        headers={"Content-Type": "application/json", "User-Agent": f"Quant-Agent-EU/{APP_VERSION}"},
         method="POST",
     )
     try:
@@ -198,7 +200,7 @@ def ensure_qq_gateway_daemon_running() -> None:
         pass
 
 
-def create_bind_task(source: str = "AstraQuant") -> dict[str, Any]:
+def create_bind_task(source: str = "Quant Agent EU") -> dict[str, Any]:
     ensure_qq_gateway_daemon_running()
     with _TASKS_LOCK:
         _gc_tasks()
@@ -210,7 +212,7 @@ def create_bind_task(source: str = "AstraQuant") -> dict[str, Any]:
         task_id = str(data.get("task_id") or "")
         if not task_id:
             raise RuntimeError("QQ 未返回 task_id")
-        connect_url = f"https://{QQ_HOST}/qqbot/openclaw/connect.html?task_id={task_id}&source={source}&_wv=2"
+        connect_url = f"https://{QQ_HOST}/qqbot/openclaw/connect.html?task_id={task_id}&source={urllib.parse.quote(source, safe='')}&_wv=2"
         task = _BindTask(task_id, key_b64, connect_url)
         _TASKS[task_id] = task
     return {"task_id": task_id, "connect_url": connect_url, "expires_in": TASK_TTL_SECONDS}
@@ -416,7 +418,7 @@ async def _ws_capture_coroutine(session: _OpenidCaptureSession, access_token: st
                                 ack_req = urllib.request.Request(
                                     f"{QQ_API_BASE}/v2/users/{urllib.parse.quote(session.openid, safe='')}/messages",
                                     data=json.dumps({
-                                        "content": "【AstraQuant】✅ OpenID 自动捕获并绑定成功！此账号已设为交易通知接收目标。",
+                                        "content": "【Quant Agent EU】✅ OpenID 自动捕获并绑定成功！此账号已设为交易通知接收目标。",
                                         "msg_type": 0,
                                         "msg_seq": seq_num,
                                     }).encode("utf-8"),

@@ -47,9 +47,15 @@ def record_open_intent(inst_id: str, side: str, ts_ms: int = None, *,
         intents = [i for i in intents
                    if isinstance(i, dict) and _now_ms - int(i.get("ts", 0) or 0) <= OPEN_INTENT_TTL_MS]
         _side_l = str(side).lower()
+        from scripts.xperp import product_for_instrument, state_identity
+        product = product_for_instrument(inst_id)
+        identity = state_identity(product, inst_id, _side_l)
         intents = [i for i in intents
-                   if not (str(i.get("instId")) == inst_id and str(i.get("side", "")).lower() == _side_l)]
-        intents.append({"instId": inst_id, "side": side, "ts": int(ts_ms or _now_ms)})
+                   if str(i.get("identity") or "") != identity and not (
+                       product == "swap" and str(i.get("instId")) == inst_id
+                       and str(i.get("side", "")).lower() == _side_l)]
+        intents.append({"instId": inst_id, "side": side, "product": product,
+                        "identity": identity, "ts": int(ts_ms or _now_ms)})
         # ⚠️ 第一百三十五刀：**原子替换**（mkstemp+fsync+os.replace）。
         # 旧体 `open(OPEN_INTENT_FILE, "w")` 是**非原子直写** —— 写崩/断电会留下
         # 0 字节或半截 JSON，而读取侧（挂单对账 / 存量挂单回收）据此把"读不到"

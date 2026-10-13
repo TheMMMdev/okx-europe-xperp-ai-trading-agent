@@ -205,7 +205,7 @@ async function runSandbox() {
 function openCreateModal() {
   newFilename.value = `custom_interceptor_${Date.now().toString(36)}.py`
   newCode.value = `"""
-AstraQuant 物理拦截插件规范
+Quant Agent EU 物理拦截插件规范
 ====================
 id: my_custom_rule
 name: 我的自定义风控规则

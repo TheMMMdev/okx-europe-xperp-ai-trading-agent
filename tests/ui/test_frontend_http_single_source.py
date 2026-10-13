@@ -233,17 +233,12 @@ class FrontendGateTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0,
                          f"vite build 失败:\n{(r.stdout + r.stderr)[-2500:]}")
 
-    def test_package_json_has_no_typecheck_script(self):
-        """如实记录基础设施缺口：`package.json` 没有 `typecheck` 脚本。
-
-        本条**不是**要求它存在，而是把现状钉成事实 ——
-        若将来补上脚本，此断言会翻红并提醒同步更新本文件的说明。
-        """
+    def test_package_json_declares_test_and_typecheck_scripts(self):
+        """CI 使用的两个入口必须沉淀在 package.json，不能只存在于文档。"""
         pkg = json.loads(_read(FRONTEND / "package.json"))
         scripts = pkg.get("scripts", {})
-        self.assertEqual(sorted(scripts), ["build", "dev", "preview"],
-                         f"package.json scripts 变化了: {sorted(scripts)} —— "
-                         f"请同步更新 FrontendGateTest 的说明")
+        self.assertEqual(scripts.get("typecheck"), "vue-tsc --noEmit -p tsconfig.app.json")
+        self.assertEqual(scripts.get("test"), "node --experimental-strip-types --test tests/*.test.mjs")
 
 
 class NodeBehaviourTest(unittest.TestCase):

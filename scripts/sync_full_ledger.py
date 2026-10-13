@@ -198,7 +198,7 @@ def allowed_inst_ids(existing_ledger_trades=None):
         n = n.strip()
         if not n:
             continue
-        allowed.add(n if "-USDT-SWAP" in n or "-USD-SWAP" in n else f"{n}-USDT-SWAP")
+        allowed.add(n if "-SWAP" in n or "_XPERP-" in n else f"{n}-USDT-SWAP")
     return allowed
 
 def get_ct_val(inst_name):
@@ -206,13 +206,13 @@ def get_ct_val(inst_name):
         if item["name"] == inst_name or item["instId"] == inst_name:
             return item["ctVal"]
     # 已下架币种回退：查 OKX 公共合约规格（免费、无需鉴权），进程内缓存
-    inst_id = inst_name if "-SWAP" in inst_name else f"{inst_name}-USDT-SWAP"
+    inst_id = inst_name if "-SWAP" in inst_name or "_XPERP-" in inst_name else f"{inst_name}-USDT-SWAP"
     if inst_id in _CTVAL_CACHE:
         return _CTVAL_CACHE[inst_id]
     try:
         import urllib.request
         req = urllib.request.Request(
-            f"https://www.okx.com/api/v5/public/instruments?instType=SWAP&instId={inst_id}",
+            f"https://www.okx.com/api/v5/public/instruments?instType={okx_runtime.current_environment().product_profile.inst_type}&instId={inst_id}",
             headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=4) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
@@ -271,7 +271,7 @@ def _holding_row(p, venue, *, env, trackers, tz_bj, allowed, council_by_inst,
                               "size": pos_sz,
                               "side_raw": str(p.get("posSide", p.get("side", "")) or "")})
         return None
-    inst = inst_id.replace("-USDT-SWAP", "")
+    inst = inst_id.split("-", 1)[0] if "_XPERP-" in inst_id else inst_id.replace("-USDT-SWAP", "")
     side_raw = str(p.get("posSide", p.get("side", ""))).lower()
     side = judge_position_side(
         p=p,

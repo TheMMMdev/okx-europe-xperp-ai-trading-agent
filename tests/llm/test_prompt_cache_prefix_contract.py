@@ -30,16 +30,16 @@ ROOT = Path(__file__).resolve().parents[2]
 
 #: 逐轮必变的运行时小节标题（与 cache_warmer.DYNAMIC_MARKERS 同源语义）。
 DYNAMIC_TITLES = (
-    "全网实时重大快讯与宏观情报",
-    "账户当前持仓与风险敞口全景",
-    "在途未成交限价挂单",
-    "全标的池原生行情、技术指标与筹码矩阵",
-    "当前决策时间戳与市场时效",
-    "全市场宏观体制自适应识别",
+    "Current market and macro intelligence",
+    "Current positions and risk exposure",
+    "Pending maker orders",
+    "Market, technical, and positioning matrix",
+    "Decision timestamp and current-cycle risk budget",
+    "Market regime",
 )
 
 #: 静态头的锚点：它之前的一切都是可缓存前缀。
-STATIC_ANCHOR = "推演与决策任务"
+STATIC_ANCHOR = "Analysis and decision task"
 
 
 class SystemPromptIsStaticTests(unittest.TestCase):

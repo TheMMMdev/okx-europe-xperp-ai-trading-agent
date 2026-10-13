@@ -2,10 +2,9 @@ import { ref, computed } from 'vue'
 // 批 76：写成显式 `/index` —— 目录导入只有 Vite 能解析，
 // 而 `frontend/tests/*.test.mjs` 的自定义 loader 只试 `.ts`/`.js` 文件，
 // 于是任何（直接或间接）依赖本模块的 node 测试都会在解析阶段就挂掉。
-import { zhCN } from '../locales/zh/index'
 import { enUS } from '../locales/en/index'
 
-export type LocaleType = 'zh-CN' | 'en-US'
+export type LocaleType = 'en-US'
 
 const LOCALE_KEY = 'astra_locale'
 
@@ -20,7 +19,6 @@ const LOCALE_KEY = 'astra_locale'
  * 登录页模板里**硬编码**成 `中文` / `EN`，同一个语言两个写法。
  */
 export const LOCALE_OPTIONS: { value: LocaleType; label: string }[] = [
-  { value: 'zh-CN', label: '中文' },
   { value: 'en-US', label: 'English' },
 ]
 
@@ -31,17 +29,17 @@ type Dict = Record<string, any>
 // 「仅 legacy 提供且仍被使用」的键位 = 0；legacy 292 键中 288 个无人使用。
 // 原注释自定的移除条件「旧页面清零后移除」已达成，故连同 deepMerge 一并删除。
 const messages: Record<LocaleType, Dict> = {
-  'zh-CN': zhCN as Dict,
   'en-US': enUS as Dict,
 }
 
-let currentLocaleRaw = ref<LocaleType>('zh-CN')
+let currentLocaleRaw = ref<LocaleType>('en-US')
 let initialized = false
 
 export function useI18n() {
   const currentLocale = currentLocaleRaw
 
-  function applyLocale(locale: LocaleType) {
+  function applyLocale(_locale: LocaleType) {
+    const locale: LocaleType = 'en-US'
     currentLocale.value = locale
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('lang', locale)
@@ -57,29 +55,14 @@ export function useI18n() {
   }
 
   function toggleLocale() {
-    applyLocale(currentLocale.value === 'zh-CN' ? 'en-US' : 'zh-CN')
+    applyLocale('en-US')
   }
 
   function initLocale() {
     if (initialized) return
     initialized = true
 
-    let preferred: LocaleType = 'zh-CN'
-    try {
-      const saved = localStorage.getItem(LOCALE_KEY)
-      if (saved === 'zh-CN' || saved === 'en-US') {
-        preferred = saved
-      } else if (typeof navigator !== 'undefined') {
-        const navLang = (navigator.language || '').toLowerCase()
-        if (navLang.startsWith('en')) {
-          preferred = 'en-US'
-        }
-      }
-    } catch {
-      // fallback
-    }
-
-    applyLocale(preferred)
+    applyLocale('en-US')
   }
 
   /**
@@ -96,7 +79,7 @@ export function useI18n() {
       }
       return typeof curr === 'string' ? curr : null
     }
-    let out = lookup(messages[currentLocale.value]) ?? lookup(messages['zh-CN']) ?? fallback ?? path
+    let out = lookup(messages[currentLocale.value]) ?? fallback ?? path
     if (params) {
       for (const [k, v] of Object.entries(params)) {
         out = out.replaceAll(`{${k}}`, String(v))
@@ -115,7 +98,7 @@ export function useI18n() {
       }
       return curr
     }
-    return lookup(messages[currentLocale.value]) ?? lookup(messages['zh-CN'])
+    return lookup(messages[currentLocale.value])
   }
 
   const isEn = computed(() => currentLocale.value === 'en-US')

@@ -78,7 +78,26 @@ class ConstantTests(unittest.TestCase):
                       "tests/__init__.py 在 import 前置了 ASTRA_LEDGER_SYNC_DISABLED=1")
 
     def test_target_instruments_are_preloaded(self):
-        self.assertEqual(len(DC.TARGET_INSTRUMENTS), 9)
+        """会话级池夹具可能被前序用例改写；这里恢复夹具后只校验本模块的预载口径。"""
+        from scripts import instrument_pool
+
+        pool_file = instrument_pool.POOL_FILE
+        old_bytes = pool_file.read_bytes() if pool_file.exists() else None
+        old_targets = DC.TARGET_INSTRUMENTS
+        names = ("BTC", "ETH", "SOL", "DOGE", "SUI", "ADA", "XRP", "UNI", "ARB")
+        try:
+            pool_file.write_text(json.dumps({"version": 2, "instruments": [
+                {"instId": f"{name}-USDT-SWAP", "name": name, "ctVal": 1}
+                for name in names
+            ]}), encoding="utf-8")
+            DC.TARGET_INSTRUMENTS = DC.load_instruments()
+            self.assertEqual(len(DC.TARGET_INSTRUMENTS), 9)
+        finally:
+            if old_bytes is None:
+                pool_file.unlink(missing_ok=True)
+            else:
+                pool_file.write_bytes(old_bytes)
+            DC.TARGET_INSTRUMENTS = old_targets
 
     def test_not_ready_text_is_human_readable(self):
         self.assertIn("NOT READY", DC._NOT_READY_TEXT)

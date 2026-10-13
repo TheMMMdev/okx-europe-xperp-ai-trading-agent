@@ -71,6 +71,9 @@ def _shared_venue_entry_gate(*, venue: str, asset: str, action: str,
     caps = getattr(ad, "capabilities", None)
     declared = tuple(getattr(caps, "position_modes", ()) or ())
     ready = tuple(getattr(caps, "entry_ready_position_modes", ()) or ())
+    product_profile = getattr(ad, "product_profile", None)
+    if str(getattr(product_profile, "product", "swap")) == "xperp":
+        ready = ("net", "long_short")
     probe = getattr(ad, "detect_position_mode", None)
     # 只在**真的实现了只读探测**时才体检：没探测器的适配器上
     # "声明了就体检、探测不到就拒"会把该所新开仓全部停掉。
@@ -152,6 +155,16 @@ def submit_protected_limit_order(inst_id: str, side: str, pos_side: str, size: f
     只 warn 不闸门——新增开仓路径时必须传 ctx。
     """
     env = current_environment()  # 审计 C2：冻结周期环境单源（同 close 路径）
+    _product = str(getattr(getattr(env, "product_profile", None), "product", "swap"))
+    if _product == "xperp":
+        from scripts.xperp import execution_enabled, expiry_verdict
+        if not execution_enabled():
+            return False, "X-Perp execution is disabled"
+        if not isinstance(venue_ctx, dict) or str(venue_ctx.get("product") or "") != "xperp":
+            return False, "X-Perp order metadata is incomplete"
+        expiry = expiry_verdict(venue_ctx.get("exp_time"))
+        if not expiry.ok:
+            return False, expiry.reason
     _reservation = None
     target_venue = "okx"
     if isinstance(venue_ctx, dict):
@@ -190,9 +203,13 @@ def submit_protected_limit_order(inst_id: str, side: str, pos_side: str, size: f
     # 目标所原生合约码（纯元数据，绝不实例化适配器→零出网）。
     try:
         from astra_backend.exchanges.listing import ensure_contract_listed
-        native_contract = venue_registry.native_symbol_pure(
-            canonical_base(inst_id), target_venue)
-        _check = ensure_contract_listed(target_venue, "demo" if env.simulated else "live", native_contract)
+        native_contract = (inst_id if _product == "xperp" else
+                           venue_registry.native_symbol_pure(canonical_base(inst_id), target_venue))
+        _check = (ensure_contract_listed(
+            target_venue, "demo" if env.simulated else "live", native_contract,
+            inst_type="FUTURES", rule_type="xperp", base_url=env.base_url)
+            if _product == "xperp" else ensure_contract_listed(
+                target_venue, "demo" if env.simulated else "live", native_contract))
         if not _check.ok:
             print(f"[listing gate] 拒绝下单 {inst_id}→{native_contract} ({target_venue}): {_check.reason}")
             release_signal_reservation(_reservation, "合约对账拒绝")
@@ -362,6 +379,23 @@ def submit_protected_limit_order(inst_id: str, side: str, pos_side: str, size: f
             release_signal_reservation(_reservation, "入场闸门拒绝")
         return False, f"入场闸门拒绝: {_gate_why}"
 
+    _wire_pos_side = pos_side
+    _td_mode = "cross"
+    if _product == "xperp":
+        from scripts.xperp import margin_mode
+        _td_mode = margin_mode()
+        try:
+            _cfg = okx_rest.request("GET", "/api/v5/account/config")
+            _mode = str((_cfg or [{}])[0].get("posMode") or "").lower()
+            if _mode == "net_mode":
+                _wire_pos_side = None
+            elif _mode != "long_short_mode":
+                release_signal_reservation(_reservation, "X-Perp 持仓模式不可判定")
+                return False, f"X-Perp position mode is unsupported: {_mode or 'unknown'}"
+        except Exception as exc:
+            release_signal_reservation(_reservation, "X-Perp 持仓模式读取失败")
+            return False, f"X-Perp position mode check failed: {exc}"
+
     # 审计④5(2026-09-13)：OKX 直下路径从不落 AI 裁决杠杆——张数按 ai_lever 折算，
     # 但账户档位不变 → 实际保证金/强平价按旧档算，风险模型与实况脱节（净模式或
     # 10x 旧档可把 3x 计划仓的强平价拉得极近）。best-effort 发单前对齐档位：失败仅
@@ -375,8 +409,8 @@ def submit_protected_limit_order(inst_id: str, side: str, pos_side: str, size: f
     if _want_lever > 0:
         _want_lever = max(1.0, min(_want_lever, float(MAX_LEVERAGE or 20.0)))
         try:
-            okx_rest.set_leverage(inst_id, int(_want_lever), mgn_mode="cross",
-                                  pos_side=(pos_side or None))
+            okx_rest.set_leverage(inst_id, int(_want_lever), mgn_mode=_td_mode,
+                                  pos_side=(_wire_pos_side or None))
         except Exception as lev_exc:
             print(f"[杠杆落地] warn {inst_id} 设档至 {int(_want_lever)}x 失败，"
                   f"按账户现档发单（不影响 TP/SL 覆盖）: {lev_exc}")
@@ -415,8 +449,14 @@ def submit_protected_limit_order(inst_id: str, side: str, pos_side: str, size: f
         _okx_min = _okx_num("min_sz")
         _okx_lev = _okx_num("leverage")
         if _okx_m > 0 and _okx_ct > 0 and _okx_lev > 0 and effective_px > 0:
-            _okx_want = (_okx_m * _okx_lev) / (_okx_ct * effective_px)
-            _okx_size_from_margin = quantize_size(_okx_want, _okx_min or 1.0)
+            if _product == "xperp":
+                from scripts.xperp import contracts_from_margin
+                _okx_size_from_margin = float(contracts_from_margin(
+                    _okx_m, _okx_lev, effective_px, _okx_ct,
+                    venue_ctx.get("lot_sz") or 1, _okx_min or 1))
+            else:
+                _okx_want = (_okx_m * _okx_lev) / (_okx_ct * effective_px)
+                _okx_size_from_margin = quantize_size(_okx_want, _okx_min or 1.0)
             if _okx_size_from_margin <= 0:
                 _min_notional = (_okx_min or 1.0) * _okx_ct * effective_px
                 release_signal_reservation(_reservation, "保证金换算张数低于最小下单量")
@@ -426,10 +466,15 @@ def submit_protected_limit_order(inst_id: str, side: str, pos_side: str, size: f
             size = _okx_size_from_margin
 
     try:
+        from scripts.xperp import client_order_id
+        _client_order_id = client_order_id(
+            _product, inst_id, side,
+            str((venue_ctx or {}).get("intent_id") or f"{inst_id}:{side}"))
         rows = okx_rest.place_order(
             inst_id, side, f"{size:g}",
-            pos_side=pos_side, td_mode="cross", ord_type=ord_type,
-            px=entry_px, attach_tp=effective_tp, attach_sl=effective_sl,
+            pos_side=_wire_pos_side, td_mode=_td_mode, ord_type=ord_type,
+            px=entry_px, cl_ord_id=_client_order_id,
+            attach_tp=effective_tp, attach_sl=effective_sl,
         )
     except Exception as exc:
         release_signal_reservation(_reservation, "下单异常")

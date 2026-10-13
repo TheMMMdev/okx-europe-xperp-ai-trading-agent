@@ -26,8 +26,8 @@ import path from 'node:path';
 
 const SRC = path.resolve(import.meta.dirname, '..', 'src');
 
-/** 已出现在生产配置里的三个邀请域名 —— 任何一个都不许出现在前端源码里。 */
-const BANNED_DOMAINS = ['mitxcqvwnhj', 'gatesites', 'bsmkweb'];
+/** 历史分发副本里出现过的邀请域名 —— 任何一个都不许出现在前端源码里。 */
+const BANNED_DOMAINS = ['mitx' + 'cqvwnhj', 'gate' + 'sites', 'bsmk' + 'web'];
 
 /**
  * OKX Broker code 的形状：12 位小写十六进制 + 4 位大写字母。
@@ -89,6 +89,6 @@ test('判据自检：能真的命中（拿两个样例字面量验证）', () =>
   // 用**合成**值验证形状判据，不把真实 code 写进本仓（连测试文件也不留）。
   assert.ok(BROKER_CODE_SHAPE.test('0123456789ab' + 'ABCD'), '形状判据必须认得出合法码');
   assert.ok(BROKER_CODE_SHAPE.test('6099c63a8d75SCDE'), '文档样例必须被认出来');
-  assert.ok(!BROKER_CODE_SHAPE.test('48039151'), '纯数字邀请码不该被误判为经纪商 code');
-  assert.ok(!BROKER_CODE_SHAPE.test('MCHDBKYF'), '邀请码形状的字符串不该被误判为经纪商 code');
+  assert.ok(!BROKER_CODE_SHAPE.test('12345678'), '纯数字邀请码不该被误判为经纪商 code');
+  assert.ok(!BROKER_CODE_SHAPE.test('TESTCODE'), '邀请码形状的字符串不该被误判为经纪商 code');
 });

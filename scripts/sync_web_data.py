@@ -16,7 +16,7 @@ from astra_backend.time_utils import beijing_day
 import json
 from typing import Any, Dict, Optional
 import time
-import subprocess
+from collections import deque
 import datetime
 
 import scripts.okx_rest as okx_rest
@@ -103,10 +103,19 @@ def generate_trading_data():
                 usdt_bal = d
                 break
 
-    total_eq = float(usdt_bal.get("eq", 0) or 0)
-    avail_eq = float(usdt_bal.get("availEq", 0) or 0)
-    cash_bal = float(usdt_bal.get("cashBal", 0) or 0)
-    upl_acc = float(usdt_bal.get("upl", 0) or 0)
+    product = str(getattr(getattr(env, "product_profile", None), "product", "swap"))
+    if product == "xperp":
+        from scripts.xperp import usd_equity
+        total_usd, available_usd = usd_equity(bal_data)
+        total_eq = float(total_usd)
+        avail_eq = float(available_usd)
+        cash_bal = total_eq
+        upl_acc = sum(float(d.get("upl") or 0) for d in ((bal_data or [{}])[0].get("details") or []))
+    else:
+        total_eq = float(usdt_bal.get("eq", 0) or 0)
+        avail_eq = float(usdt_bal.get("availEq", 0) or 0)
+        cash_bal = float(usdt_bal.get("cashBal", 0) or 0)
+        upl_acc = float(usdt_bal.get("upl", 0) or 0)
 
     # 2. Positions (V5 REST, replaces removed CLI)
     pos_data = okx_rest.positions()
@@ -121,15 +130,17 @@ def generate_trading_data():
             if pos_sz == 0:
                 continue
             pos_side = p.get("posSide", "net")
-            if pos_side == "long":
+            effective_side = pos_side if pos_side in {"long", "short"} else "net"
+            if effective_side == "long":
                 long_count += 1
-            elif pos_side == "short":
+            elif effective_side == "short":
                 short_count += 1
             upl = float(p.get("upl", 0) or 0)
             total_pos_upl += upl
             positions.append({
                 "instId": p.get("instId"),
-                "posSide": pos_side,
+                "posSide": effective_side,
+                "rawPosSide": pos_side,
                 "pos": p.get("pos"),
                 "lever": p.get("lever", "3"),
                 "avgPx": float(p.get("avgPx", 0) or 0),
@@ -234,7 +245,7 @@ def generate_trading_data():
 
     factors = []
     # Fetch all tickers in one single direct REST call (eliminates 6 repetitive Node CLI launches)
-    bulk_tickers = fetch_tickers_bulk(inst_type="SWAP")
+    bulk_tickers = fetch_tickers_bulk()
     for item in TARGET_INSTRUMENTS:
         inst_id = item["instId"]
         name = item["name"]
@@ -275,8 +286,8 @@ def generate_trading_data():
     logs = []
     if os.path.exists(LOG_FILE):
         try:
-            res = subprocess.run(f"tail -n 60 {LOG_FILE}", shell=True, capture_output=True, text=True)
-            logs = res.stdout.splitlines()
+            with open(LOG_FILE, "r", encoding="utf-8", errors="replace") as log_file:
+                logs = [line.rstrip("\r\n") for line in deque(log_file, maxlen=60)]
         except Exception:
             pass
 

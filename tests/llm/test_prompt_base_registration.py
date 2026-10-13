@@ -124,8 +124,8 @@ class FactoryBaselineRegistersLiveBaseTest(unittest.TestCase):
         """
         profile = self._profile_raw()
         stored = ((profile.get("pipelines") or {}).get("trading_user") or [])
-        task = [m for m in stored if m.get("title") == "推演与决策任务"]
-        self.assertEqual(len(task), 1, "推演与决策任务 应恰好一条")
+        task = [m for m in stored if m.get("title") == "Analysis and decision task"]
+        self.assertEqual(len(task), 1, "Analysis and decision task should appear exactly once")
         self.assertLess(len(str(task[0].get("content") or "")), 1000,
                         "推演与决策任务 又变成整份 JSON 快照了 —— 契约应只由代码基座供给")
 

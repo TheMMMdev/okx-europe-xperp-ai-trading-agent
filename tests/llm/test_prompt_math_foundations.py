@@ -66,10 +66,10 @@ class PromptMathFoundationsTests(unittest.TestCase):
         from scripts.prompt_library import active_profile
         prompt = get_effective_system_prompt(active_profile())
         self.assertGreater(len(prompt), 1000, "effective system prompt 为空 —— 定位错了对象")
-        for required in ("因果微积分动力学", "定积分能量学", "概率论与统计风险",
-                         "P0 不可覆盖硬约束", "偏度与超额峰度", "VaR／CVaR"):
+        for required in ("causal price dynamics", "path energy", "probability and statistical risk",
+                         "P0 non-overridable constraints", "skew", "VaR and CVaR"):
             self.assertIn(required, prompt)
-        self.assertIn("执行层拥有最终否决权", prompt)
+        self.assertIn("deterministic execution retains final veto authority", prompt)
 
     def test_system_prompt_does_not_turn_soft_disagreement_into_permanent_wait(self):
         """轻微证据分歧不得被读成永久空仓：减速不是反转、仓位随置信度收缩、R:R 指向运行期预算。
@@ -83,13 +83,12 @@ class PromptMathFoundationsTests(unittest.TestCase):
         from scripts.prompt_library import active_profile
         prompt = get_effective_system_prompt(active_profile())
         self.assertGreater(len(prompt), 1000)
-        self.assertIn("减速不等于反转", prompt)
-        self.assertIn("1H 减速回抽是打折买点而不是离场信号", prompt)
-        self.assertIn("待命状态", prompt)                       # 空仓 = 待命，不是永久禁令
-        self.assertIn("不允许因怕亏而放掉已达标的机会", prompt)
-        self.assertIn("按置信度弹性取【本周期风险预算】常规区间", prompt)  # 分歧用仓位收缩处理
-        # 批5 P3-4 口径同源：目标 R:R / 盈亏比底线指向运行期推导值，不再硬编码
-        self.assertIn("目标盈亏比不得低于执行层声明的硬底线", prompt)
+        self.assertIn("Deceleration inside a valid 4H trend is not itself a reversal", prompt)
+        self.assertIn("exit requires structural invalidation", prompt)
+        self.assertIn("Being flat means standing by", prompt)
+        self.assertIn("trade less rather than approve a weak setup", prompt)
+        self.assertIn("Margin and leverage must stay inside the live risk budget", prompt)
+        self.assertIn("runtime minimum and maximum R:R", prompt)
 
     def test_user_prompt_injects_real_1h_math_values(self):
         missing = "/tmp/astra-test-file-does-not-exist"
@@ -125,7 +124,7 @@ class PromptMathFoundationsTests(unittest.TestCase):
         prompt = prompt.rstrip() + build_host_constitution(
             observability_brief="（回归用例桩：0 笔可观测）")
         self.assertGreater(len(prompt), 500, "effective evolution prompt 为空 —— 定位错了对象")
-        for required in ("数理快照不可观测", "NO_CHANGE", "不得编造"):
+        for required in ("quantitative dynamics are unobservable", "NO_CHANGE", "Never reverse-engineer unavailable"):
             self.assertIn(required, prompt)
 
     def test_no_change_preserves_existing_memory(self):

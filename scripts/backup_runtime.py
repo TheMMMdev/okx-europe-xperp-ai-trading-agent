@@ -262,7 +262,7 @@ def decrypt_archive(source: Path, key_env: str, destination: Path) -> Path:
         header = inp.read(len(MAGIC))
         # 双魔数识别：新魔数与**改名前的旧魔数**都接受（等长，故偏移不变）。
         if header not in (MAGIC, LEGACY_MAGIC):
-            raise RuntimeError("不是受支持的 AstraQuant AES-256-GCM 归档")
+            raise RuntimeError("不是受支持的 Quant Agent EU AES-256-GCM 归档")
         salt, nonce, tag = inp.read(16), inp.read(12), inp.read(16)
         if len(salt) != 16 or len(nonce) != 12 or len(tag) != 16:
             raise RuntimeError("加密归档头损坏")

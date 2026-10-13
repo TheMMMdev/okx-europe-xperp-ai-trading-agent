@@ -59,10 +59,10 @@ from astra_backend.dashboard_payload import read_json, read_text, read_text_line
 from scripts import okx_rest
 from scripts.instrument_pool import load_instruments
 import os
+import sys
 import json
 import time
 import datetime
-import subprocess
 import shutil
 import asyncio
 import tempfile
@@ -84,9 +84,17 @@ LOGS_DIR = os.path.join(WORKSPACE_DIR, "logs")
 
 LEDGER_JSON_FILE = os.path.join(DATA_DIR, "trading_ledger.json")
 # 批E(2026-09-13)：台账自动同步总闸（模块导入时快照，见 get_all_data 内的触发点）。
-# tests/__init__.py 会在任何测试模块导入本模块之前置 ASTRA_LEDGER_SYNC_DISABLED=1，
-# 快照即成 False——此后个别测试 clear=True 清空环境也抹不掉该闸门。
-LEDGER_AUTOSYNC_ENABLED = str(os.environ.get("ASTRA_LEDGER_SYNC_DISABLED", "")).strip().lower() not in ("1", "true", "yes")
+# tests/__init__.py 会在任何测试模块导入本模块之前置 ASTRA_LEDGER_SYNC_DISABLED=1。
+# 个别覆盖探针会在 clear=True 的环境里 reload 本模块；只要加载的是本仓 tests 包，
+# 仍保持关闭，避免后台线程恢复真实台账同步。
+_test_pkg = sys.modules.get("tests")
+_test_file = str(getattr(_test_pkg, "__file__", "") or "").replace("\\", "/")
+_in_project_tests = _test_file.startswith(BASE_DIR.replace("\\", "/") + "/tests/")
+_orchestrated_tests = _in_project_tests or "unittest" in sys.modules or "pytest" in sys.modules
+LEDGER_AUTOSYNC_ENABLED = (
+    not _orchestrated_tests
+    and str(os.environ.get("ASTRA_LEDGER_SYNC_DISABLED", "")).strip().lower() not in ("1", "true", "yes")
+)
 LOG_FILE = os.path.join(LOGS_DIR, "ai_factor_trader.log")
 NEWS_SENTIMENT_FILE = os.path.join(DATA_DIR, "news_sentiment.json")
 REVIEW_JOURNAL_FILE = os.path.join(DATA_DIR, "trade_review_journal.json")

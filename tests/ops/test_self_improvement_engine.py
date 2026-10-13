@@ -1099,8 +1099,8 @@ class ComposeEvolutionPromptsTests(_Base):
         mods = pl.get_profile("allpattern_swing")["pipelines"]["evolution_system"]
         self.assertTrue(mods, "evolution_system 管线为空 —— 定位错了对象")
         body = "\n".join(str(m.get("content") or "") for m in mods)
-        self.assertIn("必须输出严格 JSON 对象", body, "JSON 契约声明不在事实源里")
-        self.assertIn("不得输出 Markdown", body)
+        self.assertIn("Return one strict JSON object", body, "JSON contract declaration is missing from the source of truth")
+        self.assertIn("no Markdown", body)
         # 组装结果：宿主宪章必须仍然兜底（这部分是代码所有，不受 stub 影响）
         system, _, _, _ = SIE.compose_evolution_prompts([])
         self.assertIn("宿主宪章", system, "宿主宪章必须始终在复盘 System 提示词里")

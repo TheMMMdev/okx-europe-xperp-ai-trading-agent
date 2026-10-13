@@ -52,6 +52,9 @@ OKX_DELISTED = {"code": "0", "data": [
     {"instId": "BTC-USDT-SWAP", "state": "live"},
     {"instId": "SUI-USDT-SWAP", "state": "suspend"},
 ]}
+XPERP_LIVE = {"code": "0", "data": [
+    {"instId": "ETH-USD_UM_XPERP-310404", "state": "live", "ruleType": "xperp"},
+]}
 BINANCE_TRADING = {"symbols": [
     {"symbol": "BTCUSDT", "status": "TRADING"},
     {"symbol": "SUIUSDT", "status": "TRADING"},
@@ -117,6 +120,18 @@ class ListingGateTest(unittest.TestCase):
         self.assertEqual(headers.get("x-simulated-trading"), "1")
         # demo 与 live 同域（env_profiles 契约）
         self.assertIn("www.okx.com", net.requests[0].full_url)
+
+    def test_04_okx_xperp_eea_directory(self):
+        net = _FakeNet([XPERP_LIVE])
+        self.mock_urlopen.side_effect = net
+        chk = ensure_contract_listed(
+            "okx", "live", "ETH-USD_UM_XPERP-310404",
+            inst_type="FUTURES", rule_type="xperp", base_url="https://eea.okx.com")
+        self.assertTrue(chk.ok)
+        self.assertIn("eea.okx.com", net.requests[0].full_url)
+        self.assertIn("instType=FUTURES", net.requests[0].full_url)
+        self.assertIn("ruleType=xperp", net.requests[0].full_url)
+        self.assertNotIn("x-simulated-trading", net.requests[0].headers)
 
     def test_08_ttl_cache_no_second_call(self):
         net = _FakeNet([OKX_LIVE])

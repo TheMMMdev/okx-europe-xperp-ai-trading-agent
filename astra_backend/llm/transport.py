@@ -16,6 +16,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from astra_backend.llm.capabilities import _detect_reasoning_type
 from astra_backend.llm.providers import _join_api_path
+from astra_backend.version import APP_VERSION
+
+LLM_USER_AGENT = f"Quant-Agent-EU/{APP_VERSION}"
 
 
 # Transient upstream faults (gateway route flaps, bot/rate shields, 5xx) must not
@@ -169,7 +172,7 @@ def build_request_spec(
 
         headers = {
             "Content-Type": "application/json",
-            "User-Agent": "AstraQuant/8.3 (Claude-Messages)",
+            "User-Agent": f"{LLM_USER_AGENT} (Claude-Messages)",
             "anthropic-version": "2023-06-01",
         }
         if api_key:
@@ -214,7 +217,7 @@ def build_request_spec(
 
         headers = {
             "Content-Type": "application/json",
-            "User-Agent": "AstraQuant/8.3 (OpenAI-Responses)",
+            "User-Agent": f"{LLM_USER_AGENT} (OpenAI-Responses)",
         }
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
@@ -236,7 +239,7 @@ def build_request_spec(
 
         headers = {
             "Content-Type": "application/json",
-            "User-Agent": "AstraQuant/8.3 (OpenAI-Chat)",
+            "User-Agent": f"{LLM_USER_AGENT} (OpenAI-Chat)",
         }
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"

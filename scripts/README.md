@@ -1,11 +1,11 @@
 # `scripts/` 导航
 
 本目录是 ASTRA 的**运行时代码**：实盘 worker、后台守护进程、以及它们共用的库。
-它**不是**一个 Python 包（没有 `__init__.py`），模块之间以
-`sys.path` 上的顶层名互相 `import`，同时也支持 `scripts.xxx` 双拼写
+它是普通 Python 包（避免与第三方 `scripts` 包发生导入遮蔽），模块之间同时兼容
+`sys.path` 上的顶层名 `import` 与 `scripts.xxx` 包路径拼写
 （见本文末「双拼写」一节）。
 
-> ⚠️ **为什么要这份文档**：本目录根层有 **38 个 `.py`**，
+> ⚠️ **为什么要这份文档**：本目录根层有 **42 个 `.py`**，
 > 此前**没有任何 README**，其中 23 个在全仓文档里连一次都没被提到。
 > 新人（或下一个 Agent）只能靠逐个打开文件猜哪个是入口、哪个是库。
 >
@@ -25,7 +25,7 @@
 | `cleanup_disk.py` | 125 | 按需/定时 | 磁盘与日志清理 |
 | `generate_snapshots.py` | 102 | 定时 | 生成 `snapshots.json` 供前端曲线 |
 | `gateway_liveness.py` | 121 | 由 `astra_watchdog.sh gateway` 每 30s 调用 | 网关存活判据（**退出码即语义**：0 健康 / 1 进程不存在 / 2 心跳停更 / 3 心跳缺失）。判据是 worker 每轮循环写的存活心跳，而不是周期产物够不够新 —— 用户**可以合法关停交易**，那时周期产物本就不更新，用它当判据会造成误杀循环 |
-| `sync_web_data.py` | 346 | 由 `daemon_web_sync.py` 每轮调用 | 生成前端 `trading_data.json` 缓存（凭证未配则 **fail-closed**，绝不用 0 覆盖好缓存） |
+| `sync_web_data.py` | 357 | 由 `daemon_web_sync.py` 每轮调用 | 生成前端 `trading_data.json` 缓存（凭证未配则 **fail-closed**，绝不用 0 覆盖好缓存） |
 
 ## 交易核心
 
@@ -33,8 +33,8 @@
 |---|---|---|
 | `ai_brain_trader.py` | 1117 | AI 主脑全标的池决策引擎（与主脚本共用风控常量） |
 | `factor_library.py` | 298 | 多因子库：`compute_instrument_factors()` 逐标的装配因子 |
-| `instrument_pool.py` | 409 | 交易宇宙（标的池）的**校验后**单一来源 |
-| `market_data_service.py` | 562 | 零进程直连公共行情服务；`_public_get/_public_post` 带**耗时/成败埋点**（调用期 `note_call`/`note_failure`，取值行为一字不变） |
+| `instrument_pool.py` | 506 | 交易宇宙（标的池）的**校验后**单一来源 |
+| `market_data_service.py` | 444 | 零进程直连公共行情服务；`_public_get/_public_post` 带**耗时/成败埋点**（调用期 `note_call`/`note_failure`，取值行为一字不变） |
 | `market_data_health.py` | 266 | 行情取数可观测性：失败**计数 + 每类一次性告警**（第 137 刀）+ 调用**耗时/成功率/百分位**与跨进程快照 `data/market_data_health.json`（第 138 刀；worker 每周期写、后端 `/metrics` 读） |
 | `market_stream.py` | 481 | 公共行情 **WebSocket 只读层**（OKX 帧解析归一 / 有界 tick 缓冲 / 健康账本与陈旧度 / `--probe` 探测 CLI）。**不常驻、不接决策与下单路径**；REST 取数一字未动。快照 `data/market_stream_health.json` 经 `/metrics` 暴露（可选源 `required="0"`） |
 | `calculus_engine.py` | 71 | 因果微积分 / 定积分 / 概率论引擎 |
@@ -45,9 +45,11 @@
 
 | 模块 | 行数 | 说明 |
 |---|---|---|
-| `okx_rest.py` | 552 | OKX V5 签名 REST 客户端（请求契约显式） |
-| `okx_runtime.py` | 87 | OKX 实盘/模拟盘凭证的单一来源 |
-| `sync_full_ledger.py` | 724 | OKX 持仓历史 → 本地台账同步 |
+| `okx_rest.py` | 628 | OKX V5 签名 REST 客户端（请求契约显式） |
+| `okx_runtime.py` | 125 | OKX 实盘/模拟盘凭证与 SWAP/X-Perp 产品档案的单一来源 |
+| `xperp.py` | 135 | OKX EEA X-Perp 元数据、到期门禁、USD 合约换算、身份与客户端订单 ID |
+| `xperp_lifecycle_check.py` | 164 | 最小仓位 X-Perp 生命周期验证；要求精确确认短语，可真实下单，默认不得无人值守运行 |
+| `sync_full_ledger.py` | 551 | OKX 持仓历史 → 本地台账同步 |
 | `archive_ledger.py` | 198 | 台账分片归档（**默认 dry-run**） |
 | `risk_constants.py` | 175 | 执行层风控参数单一事实源 |
 | `policy_snapshot.py` | 53 | 策略快照代理模块 |
@@ -83,9 +85,10 @@
 |---|---|---|
 | `backup_runtime.py` | 481 | 备份作业运行时：打包 / 加密 / 校验 / 投递 |
 | `backup_upload.py` | 282 | 备份上传目标：S3 / OSS / WebDAV / 百度网盘 |
+| `release_preflight.py` | 71 | 公开发布前检查：被跟踪的秘密形态、运行时数据、披露与防回归标记 |
 | `self_improvement_engine.py` | 782 | LLM 原生自省与策略演化引擎 |
 | `local_lock.py` | 114 | `file_lock` 的**本地兜底**实现（跨主机锁的降级路径） |
-| `qq_notifier.py` | 157 | 通知发布器，桥接 AstraQuant 网关 |
+| `qq_notifier.py` | 157 | 通知发布器，桥接 Quant Agent EU 网关 |
 | `db_manager.py` | 282 | SQLite 连接/建表管理 |
 | `debug_aggregate_orders.py` | 54 | **调试脚本**：聚合挂单排查 |
 | `debug_audit_bills.py` | 48 | **调试脚本**：账单审计排查 |

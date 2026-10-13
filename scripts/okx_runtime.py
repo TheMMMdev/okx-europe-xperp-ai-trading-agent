@@ -8,6 +8,27 @@ from typing import Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_ENVIRONMENTS = {"demo", "live"}
+ALLOWED_PRODUCTS = {"swap", "xperp"}
+
+
+@dataclass(frozen=True)
+class OKXProductProfile:
+    product: str
+    inst_type: str
+    rule_type: str
+    settlement_currency: str
+
+
+def product_profile(product: str, settlement_currency: str = "") -> OKXProductProfile:
+    normalized = str(product or "swap").strip().lower()
+    if normalized not in ALLOWED_PRODUCTS:
+        raise ValueError("OKX product must be swap or xperp")
+    if normalized == "xperp":
+        settlement = str(settlement_currency or "USD").strip().upper()
+        if settlement not in {"USDC", "USDG", "USD"}:
+            raise ValueError("X-Perp settlement currency must be USDC, USDG, or USD")
+        return OKXProductProfile("xperp", "FUTURES", "xperp", settlement)
+    return OKXProductProfile("swap", "SWAP", "normal", "USDT")
 
 
 def _load_dotenv() -> dict[str, str]:
@@ -35,9 +56,14 @@ class OKXEnvironment:
     passphrase: str
     base_url: str = "https://www.okx.com"
     source: str = "environment"
+    product: str = "swap"
+    settlement_currency: str = ""
 
     @property
     def simulated(self) -> bool: return self.mode == "demo"
+    @property
+    def product_profile(self) -> OKXProductProfile:
+        return product_profile(self.product, self.settlement_currency)
     @property
     def configured(self) -> bool: return bool(self.api_key and self.secret_key and self.passphrase)
     @property
@@ -45,7 +71,10 @@ class OKXEnvironment:
         seed = f"{self.mode}:{self.api_key}".encode()
         return hashlib.sha256(seed).hexdigest()[:12] if self.api_key else f"{self.mode}-not-configured"
     @property
-    def identity(self) -> str: return f"okx:{self.mode}:{self.fingerprint}"
+    def identity(self) -> str:
+        if self.product_profile.product == "swap":
+            return f"okx:{self.mode}:{self.fingerprint}"
+        return f"okx:{self.mode}:{self.product_profile.product}:{self.fingerprint}"
 
 
 def selected_environment(values: Mapping[str, str] | None = None) -> OKXEnvironment:
@@ -60,9 +89,21 @@ def selected_environment(values: Mapping[str, str] | None = None) -> OKXEnvironm
     profile = tuple(str(env.get(f"{prefix}_{field}") or "") for field in fields)
     legacy = tuple(str(env.get(f"OKX_{field}") or "") for field in fields)
     api_key, secret_key, passphrase = profile if any(profile) else legacy
-    base_url = str(env.get("OKX_BASE_URL") or "https://www.okx.com").rstrip("/")
-    if base_url != "https://www.okx.com": raise ValueError("OKX REST Base URL 只允许 https://www.okx.com")
-    return OKXEnvironment(mode, api_key, secret_key, passphrase, base_url, "separate-credentials" if env.get(f"{prefix}_API_KEY") else "legacy-shared-key")
+    product = str(env.get("ASTRA_OKX_PRODUCT") or "swap").strip().lower()
+    if product not in ALLOWED_PRODUCTS:
+        raise ValueError("OKX product must be swap or xperp")
+    default_base_url = "https://eea.okx.com" if product == "xperp" else "https://www.okx.com"
+    base_url = str(env.get("OKX_BASE_URL") or default_base_url).rstrip("/")
+    expected_base_url = "https://eea.okx.com" if product == "xperp" else "https://www.okx.com"
+    if base_url not in {"https://www.okx.com", "https://eea.okx.com"}:
+        raise ValueError("OKX REST Base URL 只允许 https://www.okx.com 或 https://eea.okx.com")
+    if base_url != expected_base_url:
+        raise ValueError(f"OKX {product} REST Base URL 必须是 {expected_base_url}")
+    settlement_currency = str(env.get("ASTRA_XPERP_SETTLEMENT_CCY") or "").strip().upper()
+    product_profile(product, settlement_currency)
+    return OKXEnvironment(mode, api_key, secret_key, passphrase, base_url,
+                          "separate-credentials" if env.get(f"{prefix}_API_KEY") else "legacy-shared-key",
+                          product, settlement_currency)
 
 
 _FROZEN_ENVIRONMENT: OKXEnvironment | None = None

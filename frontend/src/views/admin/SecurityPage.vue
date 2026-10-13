@@ -518,12 +518,12 @@ const bandFacts = computed(() => {
 // ---- Strategy Plaza Sharing ----
 const plazaSettings = ref({
   enabled: false,
-  nickname: '0xEthan',
+  nickname: 'Anonymous Quant',
   show_performance: true,
   show_balance: false,
   show_model: true,
   show_strategy_params: true,
-  plaza_hub_url: 'https://hub.astraquant.tech',
+  plaza_hub_url: '',
 })
 const plazaIsLive = ref(false)
 const loadingPlaza = ref(false)

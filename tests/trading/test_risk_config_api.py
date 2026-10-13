@@ -321,12 +321,12 @@ class PromptRiskContractTests(unittest.TestCase):
         # ② 口径指向（JSON 方案模块）：金额/盈亏比/置信度一律指向运行期推导值
         from scripts.prompt_library import active_profile
         effective = ai_brain_trader.get_effective_system_prompt(active_profile())
-        self.assertIn("以每轮用户消息【本周期风险预算】小节的实时推导值为准", effective,
-                      "金额类参数必须指向运行期风险预算，不得内嵌固定值")
-        self.assertIn("目标盈亏比不得低于执行层声明的硬底线", effective,
-                      "盈亏比底线必须指向执行层声明值（不得写死具体数字）")
-        self.assertIn("按置信度弹性取【本周期风险预算】常规区间", effective,
-                      "保证金/杠杆必须按运行期风险预算区间弹性取值")
+        self.assertIn("must come from the live 【Current-cycle risk budget】 section", effective,
+                      "Risk values must reference the runtime budget instead of fixed values")
+        self.assertIn("runtime minimum and maximum R:R", effective,
+                      "Risk/reward limits must reference runtime execution values")
+        self.assertIn("Margin and leverage must stay inside the live risk budget", effective,
+                      "Margin and leverage must use the runtime budget")
 
     def test_risk_budget_carries_live_values(self):
         abt = self._reload_clean()

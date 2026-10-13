@@ -1,4 +1,4 @@
-# AstraQuant → Prometheus 抓取配置（可观测性 Phase 1 消费侧）
+# Quant Agent EU → Prometheus 抓取配置（可观测性 Phase 1 消费侧）
 #
 # 用法（与同目录 docker-compose.yml 配套）：
 #   ASTRA_METRICS_TOKEN=<管理端静态令牌> docker compose -f deploy/observability/docker-compose.yml up -d

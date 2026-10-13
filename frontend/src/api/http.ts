@@ -23,14 +23,18 @@ export class HttpError extends Error {
 export function normalizeDetail(data: any, status: number, t?: (key: string) => string): string {
   const tr = t || useI18n().t;
   const detail = data?.detail ?? data?.message;
+  const english = (value: unknown) => {
+    const text = String(value || '').trim();
+    return /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/u.test(text) ? tr('common.requestFailed') : text;
+  };
   if (Array.isArray(detail)) {
     const colon = tr('common.punct.colon');
     const sep = tr('common.punct.semicolon');
     return detail
-      .map((x: any) => `${(x.loc || []).slice(1).join('.') || tr('common.requestFailed')}${colon}${x.msg}`)
+      .map((x: any) => `${(x.loc || []).slice(1).join('.') || tr('common.requestFailed')}${colon}${english(x.msg)}`)
       .join(sep);
   }
-  if (typeof detail === 'string' && detail) return detail;
+  if (typeof detail === 'string' && detail) return english(detail);
   return `HTTP ${status}`;
 }
 

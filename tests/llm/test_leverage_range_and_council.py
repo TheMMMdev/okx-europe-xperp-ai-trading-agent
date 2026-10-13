@@ -123,8 +123,8 @@ class BrainPromptAntiAnchorTests(unittest.TestCase):
         effective = apply_module_layout(base_template_text("trading_system"),
                                         active_profile(), "trading_system", "x")
         self.assertGreater(len(effective), 1000, "effective system prompt 为空 —— 定位错了对象")
-        self.assertIn("按置信度弹性取【本周期风险预算】常规区间", effective)
-        self.assertIn("强信号可取上限侧", effective)
+        self.assertIn("Margin and leverage must stay inside the live risk budget", effective)
+        self.assertIn("Wider stops require smaller margin or lower leverage", effective)
 
     def test_rendered_example_is_range_midpoint(self):
         lo, hi = 5.0, 7.0

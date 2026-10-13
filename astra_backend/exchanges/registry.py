@@ -91,8 +91,17 @@ def _account_key(venue_key: str, environment: str) -> AccountKey:
         api_key, _secret = venue_credentials(venue_key, environment)
     except Exception:
         api_key = ""
+    identity_seed = api_key
+    if venue_key == "okx":
+        try:
+            from scripts.okx_runtime import current_environment
+            product = current_environment().product_profile.product
+            if product != "swap":
+                identity_seed = f"{api_key}:{product}"
+        except Exception:
+            pass
     return AccountKey(venue=venue_key, environment=environment,
-                      fingerprint=credential_fingerprint(api_key))
+                      fingerprint=credential_fingerprint(identity_seed))
 
 
 def get_adapter(venue: str, environment: Optional[str] = None) -> BaseExchangeAdapter:
@@ -117,7 +126,12 @@ def get_adapter(venue: str, environment: Optional[str] = None) -> BaseExchangeAd
     env = str(environment or "").strip().lower() or env_profiles.legacy_environment_for(key)
     cache_key = _account_key(key, env)
     if cache_key not in _INSTANCES:
-        _INSTANCES[cache_key] = cls(environment=env)
+        kwargs = {"environment": env}
+        if key == "okx":
+            from scripts.okx_runtime import current_environment
+            profile = current_environment().product_profile
+            kwargs.update(product=profile.product, settlement_currency=profile.settlement_currency)
+        _INSTANCES[cache_key] = cls(**kwargs)
     return _INSTANCES[cache_key]
 
 

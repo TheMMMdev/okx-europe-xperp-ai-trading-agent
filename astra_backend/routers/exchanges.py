@@ -131,6 +131,27 @@ def positions(x_astra_admin_token: str | None = Header(default=None)) -> dict[st
         raise HTTPException(status_code=502, detail=f"OKX account request failed: {exc}") from exc
 
 
+@router.get("/api/v1/admin/xperp/instruments")
+def xperp_instruments(settlement_currency: str = Query(default="USD"),
+                      x_astra_admin_token: str | None = Header(default=None)) -> dict[str, Any]:
+    require_admin_header(x_astra_admin_token)
+    from astra_backend.exchanges.okx import OKXPublicAdapter
+    from scripts.okx_runtime import current_environment, product_profile
+    from scripts.xperp import execution_enabled
+    env = current_environment()
+    profile = product_profile("xperp", settlement_currency)
+    rows = OKXPublicAdapter(environment=env.mode, product="xperp",
+                           settlement_currency=profile.settlement_currency).fetch_xperp_instruments(profile.settlement_currency)
+    return {
+        "product": profile.product,
+        "inst_type": profile.inst_type,
+        "settlement_currency": profile.settlement_currency,
+        "execution_enabled": execution_enabled(),
+        "instruments": rows,
+        "count": len(rows),
+    }
+
+
 _VENUE_ACCOUNT_FIELDS = ("equity", "available", "positions_count", "open_orders_count")
 
 _LISTING_ENV_MAP: dict[str, dict[str, str]] = {
@@ -169,9 +190,10 @@ def _venue_accounts_okx(environment: str) -> dict[str, Any]:
             "请在后台「账户接入」录入后自动出现")
     try:
         from scripts import okx_rest
-        bal = okx_rest.request("GET", "/api/v5/account/balance", {"ccy": "USDT"}, env=env)
-        pos = okx_rest.request("GET", "/api/v5/account/positions", {"instType": "SWAP"}, env=env)
-        pend = okx_rest.request("GET", "/api/v5/trade/orders-pending", {"instType": "SWAP"}, env=env)
+        profile = env.product_profile
+        bal = okx_rest.balances(profile.settlement_currency, env=env)
+        pos = okx_rest.positions(inst_type=profile.inst_type, env=env)
+        pend = okx_rest.pending_orders(inst_type=profile.inst_type, env=env)
     except OKXNotConfigured as exc:
         return _venue_account_unknown("unavailable", f"OKX 凭证失效：{exc}")
     except Exception as exc:
@@ -179,18 +201,18 @@ def _venue_accounts_okx(environment: str) -> dict[str, Any]:
     out = {"status": "ready", "reason": f"OKX {env.mode.upper()} 直签只读"}
     try:
         row = (bal or [{}])[0]
-        usdt_detail = None
+        settlement_detail = None
         for d in (row.get("details") or []):
-            if str(d.get("ccy", "")).upper() == "USDT":
-                usdt_detail = d
+            if str(d.get("ccy", "")).upper() == profile.settlement_currency:
+                settlement_detail = d
                 break
 
-        if usdt_detail and (usdt_detail.get("eq") not in (None, "") or usdt_detail.get("cashBal") not in (None, "")):
-            eq_val = float(usdt_detail.get("eq") or usdt_detail.get("cashBal") or 0.0)
-            avail_val = float(usdt_detail.get("availEq") or usdt_detail.get("availBal") or eq_val)
+        if settlement_detail and (settlement_detail.get("eq") not in (None, "") or settlement_detail.get("cashBal") not in (None, "")):
+            eq_val = float(settlement_detail.get("eq") or settlement_detail.get("cashBal") or 0.0)
+            avail_val = float(settlement_detail.get("availEq") or settlement_detail.get("availBal") or eq_val)
         else:
             eq_val = float(row.get("totalEq") or row.get("eq") or 0.0)
-            avail_val = float(usdt_detail.get("availEq") or usdt_detail.get("availBal") or eq_val) if usdt_detail else eq_val
+            avail_val = float(settlement_detail.get("availEq") or settlement_detail.get("availBal") or eq_val) if settlement_detail else eq_val
 
         out["equity"] = eq_val if eq_val > 0 else None
         out["available"] = avail_val
@@ -495,9 +517,16 @@ def listing_status(environment: str = Query(default="demo"),
     if env_key not in ("demo", "live"):
         raise HTTPException(status_code=400, detail="environment 只允许 demo 或 live")
     from astra_backend.exchanges.listing import listing_snapshot
+    from scripts.okx_runtime import selected_environment
+    selected = selected_environment()
+    profile = selected.product_profile
     venues: dict[str, dict[str, Any]] = {}
     for venue in ("okx",):
-        snap = listing_snapshot(venue, _LISTING_ENV_MAP[venue][env_key])
+        snap = (listing_snapshot(
+            venue, _LISTING_ENV_MAP[venue][env_key], inst_type=profile.inst_type,
+            rule_type="xperp", base_url=selected.base_url)
+            if profile.product == "xperp" else
+            listing_snapshot(venue, _LISTING_ENV_MAP[venue][env_key]))
         venues[venue] = {
             "ok": snap.ok,
             "reason": snap.reason,

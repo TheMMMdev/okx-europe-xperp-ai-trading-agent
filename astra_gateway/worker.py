@@ -106,7 +106,7 @@ def format_message(row: dict[str, object]) -> str:
     if title.startswith("【ASTRA") or "【ASTRA" in title:
         header = title
     else:
-        header = f"【AstraQuant】{title}"
+        header = f"【Quant Agent EU】{title}"
     return f"{header}\n⏱️ 时间：{created}\n━━━━━━━━━━━━━━\n{body}"
 
 

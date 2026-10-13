@@ -142,11 +142,7 @@ class UnifiedPrivateChannelTests(unittest.TestCase):
             if path.endswith('/close-position'):
                 body = json.loads(request.data)
                 self.assertIs(body['autoCxl'], True)
-                # 2026-09：应急一键平仓也必须带经纪商 tag。此前本路径自己拼请求体、
-                # 绕过了 `_with_broker_tag` ⇒ 后台平掉的那些仓不计经纪商归属
-                # （OKX「经纪商指引」把「市价全平」明确列为需带 Broker code 的产单端点）。
-                self.assertEqual(body.get('tag'), rest.DEFAULT_OKX_BROKER_TAG,
-                                 "应急平仓漏了经纪商 tag —— 这批成交拿不到返佣")
+                self.assertNotIn('tag', body, "应急平仓不得携带未披露的默认经纪商 tag")
                 closed = True
             if path.endswith('/cancel-algos'):
                 self.assertEqual(json.loads(request.data), [{'algoId': 'A', 'instId': position['instId']}])

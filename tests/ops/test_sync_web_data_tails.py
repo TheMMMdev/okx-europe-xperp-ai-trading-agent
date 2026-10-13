@@ -75,14 +75,15 @@ class _Sandbox(unittest.TestCase):
         pr.start()
         self.addCleanup(pr.stop)
 
-    def _env(self, *, configured=True):
-        return SimpleNamespace(configured=configured, mode="demo", fingerprint="FP")
+    def _env(self, *, configured=True, product="swap"):
+        return SimpleNamespace(configured=configured, mode="demo", fingerprint="FP",
+                               product_profile=SimpleNamespace(product=product))
 
     def _run(self, *, balances=None, positions=None, bills=None,
-             configured=True, instruments=None, tickers=None):
+             configured=True, instruments=None, tickers=None, product="swap"):
         patches = [
             patch.object(swd.okx_runtime, "current_environment",
-                         lambda: self._env(configured=configured)),
+                         lambda: self._env(configured=configured, product=product)),
             patch.object(swd.okx_rest, "balances", lambda: balances),
             patch.object(swd.okx_rest, "positions", lambda: positions),
             patch.object(swd.okx_rest, "bills", lambda limit=100: bills),
@@ -184,6 +185,14 @@ class PositionAggregationTests(_Sandbox, unittest.TestCase):
         # `posSide` 默认 "net" ⇒ 只进 positions，不计方向计数（可由此推出）
         out = self._run(positions=[{"instId": "X-USDT-SWAP", "pos": "1"}])
         self.assertEqual(out["positions_summary"]["items"][0]["posSide"], "net")
+
+    def test_an_xperp_net_position_stays_net_even_when_signed(self):
+        out = self._run(product="xperp", positions=[{
+            "instId": "ETH-USD_UM_XPERP-310404", "pos": "-1", "posSide": "net",
+        }])
+        item = out["positions_summary"]["items"][0]
+        self.assertEqual(item["posSide"], "net")
+        self.assertEqual(item["rawPosSide"], "net")
 
     def test_a_non_list_positions_response_is_tolerated(self):
         out = self._run(positions="junk")
@@ -443,9 +452,9 @@ class AuxiliaryReadTests(_Sandbox, unittest.TestCase):
         self.assertEqual(self._run(balances=[])["logs"], [])
 
     def test_a_log_tail_failure_is_swallowed(self):
-        # ★ 第 280/281 行
+        # ★ 第 287–291 行
         (self.logs / "trading.log").write_text("x", encoding="utf-8")
-        with patch.object(swd.subprocess, "run", side_effect=OSError("no shell")):
+        with patch.object(swd, "deque", side_effect=OSError("cannot read")):
             out = self._run(balances=[])
         self.assertEqual(out["logs"], [])
 

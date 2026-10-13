@@ -112,6 +112,7 @@ const steps = computed(() => tm('dash.firstRun.steps'));
         {{ t('dash.firstRun.ctaDocs') }}
       </a>
       <a
+        v-if="OFFICIAL_REPO"
         :href="OFFICIAL_REPO"
         target="_blank"
         rel="noopener noreferrer"

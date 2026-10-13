@@ -271,7 +271,9 @@ def execute_entry_scan(*,
                     limit_px=limit_px, ai_lever=ai_lever,
                     margin_usdt=_order_margin,
                     max_margin_usdt=equity_margin_cap(usdt_available),
-                    inst_lever_cap=_inst_lever_cap, ai_conf=ai_conf, ai_info=ai_info)
+                    inst_lever_cap=_inst_lever_cap, ai_conf=ai_conf, ai_info=ai_info,
+                    product=f.get("product", "swap"), exp_time=f.get("expTime", ""),
+                    lot_sz=f.get("lotSz", step_sz), settlement_currency=f.get("settleCcy", "USDT"))
                 accepted, order_ref = submit_protected_limit_order(
                     inst_id, _side, _pos_side, actual_sz, limit_px, tp_px, sl_px,
                     venue_ctx=_venue_ctx)
@@ -402,7 +404,9 @@ def execute_entry_scan(*,
                     limit_px=limit_px, ai_lever=ai_lever,
                     margin_usdt=_order_margin,
                     max_margin_usdt=equity_margin_cap(usdt_available),
-                    inst_lever_cap=_inst_lever_cap, ai_conf=ai_conf, ai_info=ai_info)
+                    inst_lever_cap=_inst_lever_cap, ai_conf=ai_conf, ai_info=ai_info,
+                    product=f.get("product", "swap"), exp_time=f.get("expTime", ""),
+                    lot_sz=f.get("lotSz", step_sz), settlement_currency=f.get("settleCcy", "USDT"))
                 accepted, order_ref = submit_protected_limit_order(
                     inst_id, _side, _pos_side, actual_sz, limit_px, tp_px, sl_px,
                     venue_ctx=_venue_ctx)

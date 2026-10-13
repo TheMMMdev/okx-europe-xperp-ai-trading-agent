@@ -2,7 +2,7 @@
 export const zhLanding = {
   betaBanner: {
     badge: 'PRO',
-    text: 'AstraQuant 机构级量化系统已全面上线 · 支持本地私有化自部署。',
+    text: 'Quant Agent EU 机构级量化系统已全面上线 · 支持本地私有化自部署。',
   },
   nav: {
     trading: '实盘交易',
@@ -70,7 +70,7 @@ export const zhLanding = {
   },
   features: {
     tag: 'WHY ASTRAQUANT',
-    title: '为什么选择 AstraQuant？',
+    title: '为什么选择 Quant Agent EU？',
     subtitle: '深度融合大模型宏观因果研判、高阶微积分动能学与确定性数理风控，打造穿越牛熊的正期望量化盈利体系。',
     f1Title: '24/7 AI 全自动量化交易',
     f1Desc: '全天候无人值守自动化执行，从盘面微观感知到撮合下单毫秒级闭环；投委会席位支持按需自由启闭。',
@@ -138,6 +138,6 @@ export const zhLanding = {
     platformTitle: '技术资源',
     docs: '系统架构文档',
     console: '管理控制台',
-    securityNote: '© 2026 AstraQuant. All rights reserved. 本系统仅供量化策略研究与辅助交易使用，请知悉加密货币市场风险。',
+    securityNote: '© 2026 Quant Agent EU. All rights reserved. 本系统仅供量化策略研究与辅助交易使用，请知悉加密货币市场风险。',
   },
 };
