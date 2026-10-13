@@ -32,14 +32,7 @@ jobs:
       - working-directory: frontend
         run: npm ci
       - run: python scripts/release_preflight.py
-      - name: Full backend suite
-        if: matrix.python-version == '3.11'
-        env:
-          ASTRA_TESTING: "1"
-          ASTRA_CLEAN_PUBLIC_CHECKOUT: "1"
-        run: python -m unittest discover -s tests
-      - name: Python 3.12 compatibility
-        if: matrix.python-version == '3.12'
+      - name: Backend compatibility suite
         env:
           ASTRA_TESTING: "1"
           ASTRA_CLEAN_PUBLIC_CHECKOUT: "1"
