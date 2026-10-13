@@ -13,6 +13,7 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.11", "3.12"]
     steps:
@@ -31,10 +32,24 @@ jobs:
       - working-directory: frontend
         run: npm ci
       - run: python scripts/release_preflight.py
-      - env:
+      - name: Full backend suite
+        if: matrix.python-version == '3.11'
+        env:
           ASTRA_TESTING: "1"
           ASTRA_CLEAN_PUBLIC_CHECKOUT: "1"
         run: python -m unittest discover -s tests
+      - name: Python 3.12 compatibility
+        if: matrix.python-version == '3.12'
+        env:
+          ASTRA_TESTING: "1"
+          ASTRA_CLEAN_PUBLIC_CHECKOUT: "1"
+        run: |
+          python -m compileall -q astra_backend astra_gateway scripts
+          python -m unittest \
+            tests.core.test_listing_gate \
+            tests.trading.test_order_lifecycle_semantics \
+            tests.venues.test_okx_rest \
+            tests.venues.test_xperp_execution
 
   frontend:
     runs-on: ubuntu-latest
